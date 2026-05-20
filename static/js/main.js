@@ -11,15 +11,22 @@ const workbenchNInput = document.getElementById("workbench-n");
 const tableHead = document.getElementById("truth-table-head");
 const tableBody = document.getElementById("truth-table-body");
 const btnNext = document.getElementById("btn-next");
+const resultMdnf = document.getElementById("result-mdnf");
 
 let currentN = 3;
 let algorithmStep = 0;
+
+function updateMdnfResult() {
+  const expr = TruthTable.buildMdnf(tableBody);
+  resultMdnf.textContent = expr === null ? "—" : expr;
+}
 
 function resetAlgorithm() {
   algorithmStep = 0;
   delete tableBody.dataset.locked;
   delete tableBody.dataset.step;
   workbench.classList.remove("workbench--locked");
+  resultMdnf.textContent = "—";
 }
 
 function showSetupError(message) {
@@ -109,5 +116,11 @@ btnNext.addEventListener("click", () => {
     }
     TruthTable.strikeAlgoExceptMinimum(tableBody);
     algorithmStep = 3;
+    updateMdnfResult();
+    return;
+  }
+
+  if (algorithmStep >= 3) {
+    updateMdnfResult();
   }
 });

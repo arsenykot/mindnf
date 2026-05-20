@@ -105,6 +105,7 @@ function buildTruthTable(n, tableHead, tableBody) {
 
     singles.forEach((col, i) => {
       const cell = tdAlgoCol(bitAt(row, col.indices[0]), i);
+      cell.dataset.algoLabel = col.label;
       if (i === singles.length - 1) {
         cell.classList.add("truth-table__sep");
       }
@@ -279,6 +280,61 @@ function getAlgorithmStep(tableBody) {
   return Number(tableBody.dataset.step || "0");
 }
 
+function literalFromBit(varName, bit) {
+  return bit === "1" ? varName : `¬${varName}`;
+}
+
+/** Импликанта из ячейки таблицы (столбец после f). */
+function implicantFromCell(cell) {
+  const value = cell.textContent.trim();
+  const label = cell.dataset.algoLabel || "";
+
+  if (label.length === 1) {
+    return literalFromBit(label, value);
+  }
+
+  const parts = [];
+  for (let i = 0; i < label.length; i += 1) {
+    parts.push(literalFromBit(label[i], value[i]));
+  }
+  return parts.join("·");
+}
+
+function compareImplicants(a, b) {
+  if (a.length !== b.length) {
+    return a.length - b.length;
+  }
+  return a.localeCompare(b);
+}
+
+/**
+ * МДНФ: дизъюнкция уникальных импликант из ячеек с минимумом (шаг 3)
+ * в строках, где f = 1.
+ */
+function buildMdnf(tableBody) {
+  if (getAlgorithmStep(tableBody) < 3) {
+    return null;
+  }
+
+  const activeRows = tableBody.querySelectorAll("tr:not(.truth-table__row--zero)");
+  if (activeRows.length === 0) {
+    return "0";
+  }
+
+  const terms = new Set();
+  activeRows.forEach((tr) => {
+    tr.querySelectorAll(".truth-table__algo-col--min").forEach((cell) => {
+      terms.add(implicantFromCell(cell));
+    });
+  });
+
+  if (terms.size === 0) {
+    return "—";
+  }
+
+  return [...terms].sort(compareImplicants).join(" ∨ ");
+}
+
 window.TruthTable = {
   clampN,
   buildTruthTable,
@@ -286,6 +342,8 @@ window.TruthTable = {
   lockFunctionColumn,
   strikeAlgoColumns,
   strikeAlgoExceptMinimum,
+  buildMdnf,
+  implicantFromCell,
   strikeComboColumns: strikeAlgoColumns,
   strikeComboExceptMinimum: strikeAlgoExceptMinimum,
   isFunctionLocked,
