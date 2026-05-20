@@ -907,6 +907,10 @@ body.app-workbench .site-header__link--anchors,
   margin-bottom: 0.5rem;
 }
 
+.profile-layout > .profile-card:first-child .profile-card__title {
+  margin-bottom: 1.25rem;
+}
+
 .profile-card__hint {
   font-size: 0.875rem;
   color: var(--muted);
