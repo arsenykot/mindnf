@@ -56,12 +56,48 @@
           >
         </label>
         <button type="button" class="btn btn--primary" id="btn-start-setup">
-          Начать
+          Продолжить
         </button>
+        <p class="setup__error" id="setup-error" hidden></p>
       </div>
+    </section>
+
+    <section class="workbench" id="workbench" aria-hidden="true">
+      <header class="workbench__header">
+        <h1 class="workbench__title">
+          Минимизация ДНФ (<span id="title-n">N=3</span>)
+        </h1>
+        <label class="workbench__n-field" for="workbench-n">
+          <span class="workbench__n-label">Число переменных N:</span>
+          <input
+            type="number"
+            id="workbench-n"
+            class="workbench__n-input"
+            min="1"
+            max="8"
+            value="3"
+          >
+        </label>
+      </header>
+
+      <div class="workbench__table-wrap">
+        <table class="truth-table" id="truth-table">
+          <thead id="truth-table-head"></thead>
+          <tbody id="truth-table-body"></tbody>
+        </table>
+      </div>
+
+      <button type="button" class="btn btn--secondary btn--wide" id="btn-next">
+        Далее
+      </button>
+
+      <footer class="workbench__result">
+        Результат МДНФ: <span id="result-mdnf">—</span>
+      </footer>
     </section>
   </div>
 
+  <script src="/static/js/table.js"></script>
   <script src="/static/js/main.js"></script>
 </body>
 </html>
