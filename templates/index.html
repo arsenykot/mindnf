@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>mindnf — минимизация ДНФ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="page" id="page">
+    <section class="landing" id="landing">
+      <header class="landing__header">
+        <span class="logo">mindnf</span>
+        <span class="tag">гарвардский алгоритм</span>
+      </header>
+
+      <main class="landing__main">
+        <h1 class="landing__title">Минимизация<br>дизъюнктивной<br>нормальной формы</h1>
+        <p class="landing__text">
+          Интерактивный инструмент для пошагового свёртывания ДНФ булевой функции
+          методом попарного объединения импликант (гарвардский алгоритм).
+          Задайте число переменных, введите таблицу истинности или карту Карно —
+          и получите минимальное покрытие.
+        </p>
+        <ul class="landing__features">
+          <li>Попарное объединение соседних кубов</li>
+          <li>Таблица простых импликант</li>
+          <li>Выбор минимального покрытия</li>
+        </ul>
+      </main>
+
+      <footer class="landing__footer">
+        <button type="button" class="btn btn--primary btn--hero" id="btn-start-landing">
+          Начать
+        </button>
+      </footer>
+    </section>
+
+    <section class="setup" id="setup" aria-hidden="true">
+      <div class="setup__card">
+        <h2 class="setup__title">Введите число переменных</h2>
+        <label class="setup__field" for="var-count">
+          <span class="setup__label">n</span>
+          <input
+            type="number"
+            id="var-count"
+            class="setup__input"
+            min="1"
+            max="8"
+            value="3"
+            inputmode="numeric"
+            autocomplete="off"
+          >
+        </label>
+        <button type="button" class="btn btn--primary" id="btn-start-setup">
+          Начать
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <script src="/static/js/main.js"></script>
+</body>
+</html>
