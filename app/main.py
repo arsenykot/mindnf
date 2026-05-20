@@ -14,5 +14,8 @@ templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
 
 @app.get("/", response_class=HTMLResponse)
+@app.head("/")
 async def index(request: Request) -> HTMLResponse:
+    if request.method == "HEAD":
+        return HTMLResponse()
     return templates.TemplateResponse(request=request, name="index.html")
