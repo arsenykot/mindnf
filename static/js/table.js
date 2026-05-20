@@ -53,9 +53,15 @@ function groupColumns(n) {
   return { singles, combos };
 }
 
-function buildTruthTable(n, tableHead, tableBody) {
+function randomFValues(rows) {
+  return Array.from({ length: rows }, () => (Math.random() < 0.5 ? "0" : "1"));
+}
+
+function buildTruthTable(n, tableHead, tableBody, options = {}) {
   const rows = 2 ** n;
   const { singles, combos } = groupColumns(n);
+  const fValues = options.fValues ?? Array(rows).fill("0");
+  const lockF = options.lockF ?? false;
 
   const headRow = document.createElement("tr");
   headRow.appendChild(th("#"));
@@ -70,13 +76,16 @@ function buildTruthTable(n, tableHead, tableBody) {
   headRow.appendChild(th("f", "truth-table__sep"));
   singles.forEach((col, i) => {
     const cell = th(col.label);
+    cell.dataset.algoCol = String(i);
     if (i === singles.length - 1) {
       cell.classList.add("truth-table__sep");
     }
     headRow.appendChild(cell);
   });
-  combos.forEach((col) => {
-    headRow.appendChild(th(col.label));
+  combos.forEach((col, colIdx) => {
+    const cell = th(col.label);
+    cell.dataset.algoCol = String(singles.length + colIdx);
+    headRow.appendChild(cell);
   });
   tableHead.replaceChildren(headRow);
 
@@ -99,7 +108,7 @@ function buildTruthTable(n, tableHead, tableBody) {
       tr.appendChild(cell);
     });
 
-    const fCell = tdFunction(row);
+    const fCell = lockF ? tdFunctionLocked(row, fValues[row]) : tdFunction(row, fValues[row]);
     fCell.classList.add("truth-table__sep");
     tr.appendChild(fCell);
 
@@ -157,14 +166,15 @@ function getAlgoCell(tr, colIdx) {
   return tr.querySelector(`.truth-table__algo-col[data-algo-col="${colIdx}"]`);
 }
 
-function tdFunction(rowIndex) {
+function tdFunction(rowIndex, initial = "0") {
   const cell = document.createElement("td");
   cell.className = "truth-table__f";
   cell.dataset.row = String(rowIndex);
-  cell.textContent = "0";
+  cell.textContent = initial;
+  cell.classList.toggle("truth-table__f--one", initial === "1");
   cell.setAttribute("role", "button");
   cell.setAttribute("tabindex", "0");
-  cell.setAttribute("aria-label", `f, строка ${rowIndex + 1}, значение 0`);
+  cell.setAttribute("aria-label", `f, строка ${rowIndex + 1}, значение ${initial}`);
 
   const toggle = () => {
     const next = cell.textContent === "0" ? "1" : "0";
@@ -182,6 +192,107 @@ function tdFunction(rowIndex) {
   });
 
   return cell;
+}
+
+function tdFunctionLocked(rowIndex, value) {
+  const cell = document.createElement("td");
+  cell.className = "truth-table__f truth-table__f--locked";
+  cell.dataset.row = String(rowIndex);
+  cell.textContent = value;
+  cell.classList.toggle("truth-table__f--one", value === "1");
+  return cell;
+}
+
+function rowAlgoValues(n, row) {
+  const { singles, combos } = groupColumns(n);
+  const values = singles.map((col) => String(bitAt(row, col.indices[0])));
+  combos.forEach((col) => {
+    values.push(bitString(row, col.indices));
+  });
+  return values;
+}
+
+function implicantFromAlgoCol(n, algoCol, value) {
+  const { singles, combos } = groupColumns(n);
+  if (algoCol < singles.length) {
+    return literalFromBit(varLabel(algoCol), value);
+  }
+  const combo = combos[algoCol - singles.length];
+  const parts = [];
+  for (let i = 0; i < combo.label.length; i += 1) {
+    parts.push(literalFromBit(combo.label[i], value[i]));
+  }
+  return parts.join("·");
+}
+
+/** Ожидаемое решение гарвардского алгоритма для игры. */
+function computeGameSolution(n, fValues) {
+  const rows = 2 ** n;
+  const colCount = groupColumns(n).singles.length + groupColumns(n).combos.length;
+  const zeroRows = new Set();
+  fValues.forEach((f, i) => {
+    if (f === "0") {
+      zeroRows.add(i);
+    }
+  });
+
+  const step1Rows = [...zeroRows];
+
+  const step2Keys = new Set();
+  for (let colIdx = 0; colIdx < colCount; colIdx += 1) {
+    const excluded = new Set();
+    zeroRows.forEach((row) => {
+      excluded.add(rowAlgoValues(n, row)[colIdx]);
+    });
+    for (let row = 0; row < rows; row += 1) {
+      if (excluded.has(rowAlgoValues(n, row)[colIdx])) {
+        step2Keys.add(`${row}:${colIdx}`);
+      }
+    }
+  }
+
+  const step3Keys = new Set();
+  const minKeys = new Set();
+  for (let row = 0; row < rows; row += 1) {
+    if (zeroRows.has(row)) {
+      continue;
+    }
+    const active = [];
+    for (let colIdx = 0; colIdx < colCount; colIdx += 1) {
+      const key = `${row}:${colIdx}`;
+      if (!step2Keys.has(key)) {
+        active.push({ colIdx, value: rowAlgoValues(n, row)[colIdx], key });
+      }
+    }
+    if (active.length === 0) {
+      continue;
+    }
+    const minimum = active.map((a) => a.value).sort()[0];
+    active.forEach((item) => {
+      if (item.value !== minimum) {
+        step3Keys.add(item.key);
+      } else {
+        minKeys.add(item.key);
+      }
+    });
+  }
+
+  const terms = new Set();
+  minKeys.forEach((key) => {
+    const [row, colIdx] = key.split(":").map(Number);
+    terms.add(implicantFromAlgoCol(n, colIdx, rowAlgoValues(n, row)[colIdx]));
+  });
+
+  let mdnf = "0";
+  if (zeroRows.size < rows) {
+    mdnf = terms.size === 0 ? "—" : [...terms].sort(compareImplicants).join(" ∨ ");
+  }
+
+  return { step1Rows, step2Keys, step3Keys, minKeys, mdnf, zeroRows };
+}
+
+function cellKey(row, colIdx) {
+  return `${row}:${colIdx}`;
 }
 
 function readFunctionValues(tableBody) {
@@ -338,12 +449,17 @@ function buildMdnf(tableBody) {
 window.TruthTable = {
   clampN,
   buildTruthTable,
+  randomFValues,
   readFunctionValues,
   lockFunctionColumn,
   strikeAlgoColumns,
   strikeAlgoExceptMinimum,
   buildMdnf,
   implicantFromCell,
+  computeGameSolution,
+  cellKey,
+  getAlgoCell,
+  getAlgoColCount,
   strikeComboColumns: strikeAlgoColumns,
   strikeComboExceptMinimum: strikeAlgoExceptMinimum,
   isFunctionLocked,

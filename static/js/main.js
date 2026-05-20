@@ -2,6 +2,7 @@ const page = document.getElementById("page");
 const landing = document.getElementById("landing");
 const setup = document.getElementById("setup");
 const workbench = document.getElementById("workbench");
+const siteHeader = document.getElementById("site-header");
 const btnStartLanding = document.getElementById("btn-start-landing");
 const btnStartSetup = document.getElementById("btn-start-setup");
 const varCountInput = document.getElementById("var-count");
@@ -15,6 +16,36 @@ const resultMdnf = document.getElementById("result-mdnf");
 
 let currentN = 3;
 let algorithmStep = 0;
+
+function hideAllViews() {
+  page.classList.remove("page--setup", "page--workbench", "page--game-mode", "page--game");
+  document.body.classList.remove("app-setup", "app-workbench", "app-game-mode", "app-game");
+  landing.hidden = false;
+  landing.setAttribute("aria-hidden", "false");
+  hideSetupPanel();
+  setup.setAttribute("aria-hidden", "true");
+  hideWorkbenchPanel();
+  workbench.setAttribute("aria-hidden", "true");
+  siteHeader.classList.remove("site-header--on-dark");
+  window.Game?.resetGameUi?.();
+}
+
+function hideLanding() {
+  page.classList.add("page--hidden-landing");
+  landing.setAttribute("aria-hidden", "true");
+}
+
+function showLanding() {
+  hideAllViews();
+  page.classList.remove("page--hidden-landing");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+window.AppUI = {
+  hideLanding,
+  showLanding,
+  page,
+};
 
 function updateMdnfResult() {
   const expr = TruthTable.buildMdnf(tableBody);
@@ -34,10 +65,38 @@ function showSetupError(message) {
   setupError.hidden = !message;
 }
 
+function showSetupPanel() {
+  setup.classList.add("is-visible");
+  setup.hidden = false;
+  setup.removeAttribute("hidden");
+}
+
+function hideSetupPanel() {
+  setup.classList.remove("is-visible");
+  setup.hidden = true;
+  setup.setAttribute("hidden", "");
+}
+
+function showWorkbenchPanel() {
+  workbench.classList.add("is-visible");
+  workbench.hidden = false;
+  workbench.removeAttribute("hidden");
+}
+
+function hideWorkbenchPanel() {
+  workbench.classList.remove("is-visible");
+  workbench.hidden = true;
+  workbench.setAttribute("hidden", "");
+}
+
 function openSetup() {
+  hideLanding();
+  hideAllViews();
+  landing.hidden = true;
+  document.body.classList.add("app-setup");
   page.classList.add("page--setup");
+  showSetupPanel();
   setup.setAttribute("aria-hidden", "false");
-  landing.setAttribute("aria-hidden", "true");
   varCountInput.focus();
 }
 
@@ -48,17 +107,26 @@ function openWorkbench(n) {
   titleN.textContent = `N=${currentN}`;
 
   showSetupError("");
-  page.classList.remove("page--setup");
+  hideLanding();
+  hideAllViews();
+  landing.hidden = true;
+  document.body.classList.add("app-workbench");
   page.classList.add("page--workbench");
-  setup.setAttribute("aria-hidden", "true");
+  showWorkbenchPanel();
   workbench.setAttribute("aria-hidden", "false");
-  landing.setAttribute("aria-hidden", "true");
 
   resetAlgorithm();
   TruthTable.buildTruthTable(currentN, tableHead, tableBody);
 }
 
 btnStartLanding.addEventListener("click", openSetup);
+
+document.getElementById("btn-play-landing")?.addEventListener("click", (e) => {
+  e.preventDefault();
+  if (window.Game?.openGameModeSelect) {
+    window.Game.openGameModeSelect();
+  }
+});
 
 btnStartSetup.addEventListener("click", () => {
   const raw = varCountInput.value.trim();
@@ -89,10 +157,6 @@ workbenchNInput.addEventListener("change", () => {
 
 btnNext.addEventListener("click", () => {
   if (algorithmStep === 0) {
-    if (typeof TruthTable.lockFunctionColumn !== "function") {
-      console.error("Обновите страницу (Ctrl+Shift+R): загружена старая версия скриптов.");
-      return;
-    }
     TruthTable.lockFunctionColumn(tableBody);
     algorithmStep = 1;
     workbench.classList.add("workbench--locked");
@@ -100,20 +164,12 @@ btnNext.addEventListener("click", () => {
   }
 
   if (algorithmStep === 1) {
-    if (typeof TruthTable.strikeAlgoColumns !== "function") {
-      console.error("Обновите страницу (Ctrl+Shift+R): загружена старая версия скриптов.");
-      return;
-    }
     TruthTable.strikeAlgoColumns(tableBody);
     algorithmStep = 2;
     return;
   }
 
   if (algorithmStep === 2) {
-    if (typeof TruthTable.strikeAlgoExceptMinimum !== "function") {
-      console.error("Обновите страницу (Ctrl+Shift+R): загружена старая версия скриптов.");
-      return;
-    }
     TruthTable.strikeAlgoExceptMinimum(tableBody);
     algorithmStep = 3;
     updateMdnfResult();

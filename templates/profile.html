@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Профиль — mindnf</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v=25">
+</head>
+<body class="body--profile">
+  <header class="site-header site-header--global site-header--static" id="site-header">
+    <a class="site-header__logo" href="/" aria-label="На главную">
+      <img src="/static/img/SB_logo.png" alt="Снежок Банк" width="160" height="40">
+    </a>
+    <button
+      type="button"
+      class="site-header__toggle"
+      id="site-header-toggle"
+      aria-expanded="false"
+      aria-controls="site-header-nav"
+    >
+      <span class="site-header__toggle-icon" aria-hidden="true"></span>
+      <span class="site-header__toggle-label">Меню</span>
+    </button>
+    <nav class="site-header__nav" id="site-header-nav" aria-label="Навигация">
+      <a class="site-header__link" href="/">Главная</a>
+      <a class="site-header__link" href="/#algorithm">Алгоритм</a>
+      <a class="site-header__link site-header__link--active" href="/profile">Профиль</a>
+    </nav>
+  </header>
+
+  <main class="profile-page">
+    <div class="profile-layout">
+      <div class="profile-card">
+        <h1 class="profile-card__title">Профиль игрока</h1>
+        <p class="profile-card__hint">
+          Данные хранятся только в вашем браузере (localStorage) — сервер и база данных не нужны.
+        </p>
+
+        <div class="profile-avatar-wrap">
+          <button
+            type="button"
+            class="profile-avatar"
+            id="profile-avatar"
+            aria-label="Загрузить аватар"
+          >
+            <span class="profile-avatar__initials" id="profile-avatar-initials">?</span>
+          </button>
+          <input
+            type="file"
+            id="profile-avatar-input"
+            class="profile-avatar-input"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            hidden
+          >
+          <p class="profile-avatar__caption">Нажмите на круг, чтобы загрузить фото</p>
+          <button type="button" class="btn btn--ghost" id="profile-avatar-remove" hidden>
+            Удалить аватар
+          </button>
+        </div>
+
+        <label class="profile-name-field" for="profile-name">
+          <span class="profile-name-field__label">Имя</span>
+          <input
+            type="text"
+            id="profile-name"
+            class="profile-name-field__input"
+            maxlength="32"
+            autocomplete="nickname"
+            placeholder="Введите имя"
+          >
+        </label>
+
+        <p class="profile-save-status" id="profile-save-status" hidden></p>
+
+        <div class="profile-stats" id="profile-stats">
+          <h2 class="profile-stats__title">Статистика игры</h2>
+          <ul class="profile-stats__list">
+            <li>Лучшее время: <strong id="profile-best-time">—</strong></li>
+            <li>Побед: <strong id="profile-wins">0</strong></li>
+            <li>Игр: <strong id="profile-games">0</strong></li>
+          </ul>
+        </div>
+      </div>
+
+      <section class="profile-card profile-history" aria-labelledby="profile-history-title">
+        <h2 class="profile-card__title" id="profile-history-title">История игр</h2>
+        <p class="profile-card__hint profile-history__hint">
+          Победы в режиме «Играть» — время, МДНФ и дата на этом устройстве.
+        </p>
+        <div class="profile-history__table-wrap">
+          <table class="profile-history__table">
+            <thead>
+              <tr>
+                <th scope="col">Время</th>
+                <th scope="col">МДНФ</th>
+                <th scope="col">Дата</th>
+              </tr>
+            </thead>
+            <tbody id="profile-history-body">
+              <tr class="profile-history__empty">
+                <td colspan="3">Пока нет завершённых игр</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <span class="site-footer__brand">mindnf</span>
+      <p class="site-footer__copy">© 2026 mindnf. Прогресс сохраняется локально.</p>
+      <nav class="site-footer__nav" aria-label="Подвал">
+        <a href="/">Главная</a>
+        <a href="/profile">Профиль</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script src="/static/js/header.js?v=25"></script>
+  <script src="/static/js/game-store.js?v=25"></script>
+  <script src="/static/js/profile-store.js?v=25"></script>
+  <script src="/static/js/profile.js?v=25"></script>
+</body>
+</html>

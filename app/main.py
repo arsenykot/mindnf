@@ -19,3 +19,11 @@ async def index(request: Request) -> HTMLResponse:
     if request.method == "HEAD":
         return HTMLResponse()
     return templates.TemplateResponse(request=request, name="index.html")
+
+
+@app.get("/profile", response_class=HTMLResponse)
+@app.head("/profile")
+async def profile(request: Request) -> HTMLResponse:
+    if request.method == "HEAD":
+        return HTMLResponse()
+    return templates.TemplateResponse(request=request, name="profile.html")

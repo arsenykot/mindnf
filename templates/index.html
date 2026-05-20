@@ -7,22 +7,39 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=12">
+  <link rel="stylesheet" href="/static/css/style.css?v=24">
 </head>
 <body>
+  <header class="site-header site-header--global" id="site-header">
+    <a class="site-header__logo" href="/" aria-label="На главную">
+      <img src="/static/img/SB_logo.png" alt="Снежок Банк" width="160" height="40">
+    </a>
+    <button
+      type="button"
+      class="site-header__toggle"
+      id="site-header-toggle"
+      aria-expanded="false"
+      aria-controls="site-header-nav"
+    >
+      <span class="site-header__toggle-icon" aria-hidden="true"></span>
+      <span class="site-header__toggle-label">Меню</span>
+    </button>
+    <nav class="site-header__nav" id="site-header-nav" aria-label="Разделы">
+      <a class="site-header__link site-header__link--home" href="/">Главная</a>
+      <a class="site-header__link site-header__link--anchors" href="/#algorithm">Алгоритм</a>
+      <a class="site-header__link site-header__link--anchors" href="/#stack">Стек</a>
+      <a class="site-header__link site-header__link--anchors" href="/#sponsors">Спонсоры</a>
+      <a class="site-header__link" href="/profile">Профиль</a>
+    </nav>
+  </header>
+
+  <div class="game-flash game-flash--left" id="game-flash-left" aria-hidden="true"></div>
+  <div class="game-flash game-flash--right" id="game-flash-right" aria-hidden="true"></div>
+
+  <div class="site-toast" id="site-toast" role="status" hidden></div>
+
   <div class="page" id="page">
     <section class="landing" id="landing">
-      <header class="site-header">
-        <a class="site-header__logo" href="/" aria-label="На главную">
-          <img src="/static/img/SB_logo.png" alt="Снежок Банк" width="160" height="40">
-        </a>
-        <nav class="site-header__nav" aria-label="Разделы страницы">
-          <a class="site-header__link" href="#algorithm">Как работает алгоритм</a>
-          <a class="site-header__link" href="#stack">Стек разработки</a>
-          <a class="site-header__link" href="#sponsors">Спонсоры</a>
-        </nav>
-      </header>
-
       <div class="hero">
         <img
           class="hero__image"
@@ -39,9 +56,14 @@
           <p class="hero__text">
             Пошаговая таблица истинности, зачёркивание импликант и поиск минимального покрытия.
           </p>
-          <button type="button" class="btn btn--primary btn--hero" id="btn-start-landing">
-            Начать
-          </button>
+          <div class="hero__actions">
+            <button type="button" class="btn btn--primary btn--hero" id="btn-play-landing">
+              Играть
+            </button>
+            <button type="button" class="btn btn--secondary btn--hero" id="btn-start-landing">
+              Построить по данным
+            </button>
+          </div>
         </div>
       </div>
 
@@ -54,13 +76,14 @@
               на интерактивной таблице.
             </p>
             <ol class="info-block__steps">
-              <li><strong>Шаг 1.</strong> Заполните столбец <code>f</code> и нажмите «Далее» — строки с нулём функции зачёркиваются.</li>
-              <li><strong>Шаг 2.</strong> В каждом столбце после <code>f</code> зачёркиваются все комбинации, встречавшиеся в исключённых строках.</li>
-              <li><strong>Шаг 3.</strong> В каждой строке остаётся только минимальная незачёрнутая комбинация.</li>
+              <li><strong>Шаг 1.</strong> Зачеркните строки, где <code>f = 0</code>.</li>
+              <li><strong>Шаг 2.</strong> В каждом столбце после <code>f</code> — значения из исключённых строк.</li>
+              <li><strong>Шаг 3.</strong> В каждой строке оставьте только минимум.</li>
             </ol>
             <p>
-              После третьего нажатия «Далее» внизу таблицы автоматически выводится <strong>МДНФ</strong> —
-              дизъюнкция импликант, отмеченных минимумом в строках с <code>f = 1</code>.
+              Кнопка <strong>Построить по данным</strong> открывает ввод числа переменных и таблицу,
+              которую вы заполняете сами. В режиме <strong>Играть</strong> — те же шаги на случайной
+              функции с таймером.
             </p>
           </div>
         </section>
@@ -77,8 +100,8 @@
               <li>Uvicorn</li>
             </ul>
             <p>
-              Расчёты выполняются в браузере — сервер отдаёт страницу и статику.
-              Хостинг: <a href="https://render.com" rel="noopener noreferrer">Render</a>.
+              Расчёты и прогресс — в браузере (localStorage). Хостинг:
+              <a href="https://render.com" rel="noopener noreferrer">Render</a>.
             </p>
           </div>
         </section>
@@ -94,7 +117,12 @@
               height="50"
             >
             <p>
-              Проект поддерживается <strong>Снежок Банк</strong> — спасибо за помощь в разработке и публикации сервиса.
+              Проект поддерживается <strong>Снежок Банк</strong> — генеральным партнёром mindnf.
+            </p>
+            <p>
+              <strong>Вклад спонсора:</strong> финансирование разработки и публикации учебного сервиса;
+              размещение фирменной символики в шапке сайта; содействие доступности интерактивного
+              тренажёра по минимизации ДНФ для студентов и преподавателей.
             </p>
           </div>
         </section>
@@ -108,12 +136,76 @@
             <a href="#algorithm">Алгоритм</a>
             <a href="#stack">Стек</a>
             <a href="#sponsors">Спонсоры</a>
+            <a href="/profile">Профиль</a>
           </nav>
         </div>
       </footer>
     </section>
+  </div>
 
-    <section class="setup" id="setup" aria-hidden="true">
+  <section class="overlay-panel" id="game-mode" hidden aria-hidden="true">
+    <div class="setup__card">
+      <h2 class="setup__title">Режим игры</h2>
+      <p class="setup__subtitle">N = 3, случайная функция f</p>
+      <button type="button" class="btn btn--primary btn--wide" id="btn-game-solo">Одиночная</button>
+      <button type="button" class="btn btn--secondary btn--wide" id="btn-game-friend">Вызов по ссылке</button>
+      <button type="button" class="btn btn--ghost btn--wide" id="btn-game-mode-back">Назад</button>
+    </div>
+  </section>
+
+  <section class="overlay-panel" id="game-challenge" hidden aria-hidden="true">
+    <div class="setup__card">
+      <h2 class="setup__title">Вызов по ссылке</h2>
+      <p class="setup__subtitle">
+        Создайте задачу, пройдите её и отправьте ссылку другу — у него будет та же колонка&nbsp;f.
+        После победы в ссылку попадут ваш ник из профиля и время для сравнения.
+      </p>
+      <button type="button" class="btn btn--primary btn--wide" id="btn-challenge-create">Создать вызов</button>
+      <button type="button" class="btn btn--ghost btn--wide" id="btn-challenge-back">Назад</button>
+    </div>
+  </section>
+
+  <section class="game-screen" id="game-screen" hidden aria-hidden="true">
+      <div class="game-hud">
+        <div class="game-hud__item">
+          <span class="game-hud__label">Время</span>
+          <span class="game-hud__value" id="game-timer">00:00.0</span>
+        </div>
+        <div class="game-hud__item game-hud__item--grow">
+          <span class="game-hud__label" id="game-step-label">Шаг 1 из 3</span>
+          <p class="game-challenge-banner" id="game-challenge-banner" hidden></p>
+          <p class="game-hud__hint" id="game-hint"></p>
+        </div>
+      </div>
+
+      <div class="game-table-wrap" id="game-table-wrap">
+        <table class="truth-table" id="game-truth-table">
+          <thead id="game-table-head"></thead>
+          <tbody id="game-table-body"></tbody>
+        </table>
+
+        <div class="game-instruction" id="game-instruction">
+          <div class="setup__card game-instruction__card">
+            <h2 class="setup__title">Инструкция</h2>
+            <p class="game-instruction__text">
+              Выполните три шага гарвардского алгоритма. Для быстрого зачёркивания строк используйте
+              <strong>номера строк</strong> слева, ячейки <strong>f</strong> или любые ячейки в строке.
+              Неверные клики не засчитываются — экран слегка мигнёт красным.
+            </p>
+            <ol class="info-block__steps game-instruction__steps">
+              <li>Зачеркните все строки, где <code>f = 0</code>.</li>
+              <li>В столбцах после <code>f</code> — все совпадающие комбинации из этих строк.</li>
+              <li>В каждой оставшейся строке оставьте только минимум.</li>
+            </ol>
+            <button type="button" class="btn btn--primary btn--wide" id="btn-game-instruction-start">
+              Начать
+            </button>
+          </div>
+        </div>
+      </div>
+  </section>
+
+  <section class="overlay-panel" id="setup" hidden aria-hidden="true">
       <div class="setup__card">
         <h2 class="setup__title">Введите число переменных</h2>
         <label class="setup__field" for="var-count">
@@ -134,44 +226,79 @@
         </button>
         <p class="setup__error" id="setup-error" hidden></p>
       </div>
-    </section>
+  </section>
 
-    <section class="workbench" id="workbench" aria-hidden="true">
-      <header class="workbench__header">
-        <h1 class="workbench__title">
-          Минимизация ДНФ (<span id="title-n">N=3</span>)
-        </h1>
-        <label class="workbench__n-field" for="workbench-n">
-          <span class="workbench__n-label">Число переменных N:</span>
-          <input
-            type="number"
-            id="workbench-n"
-            class="workbench__n-input"
-            min="1"
-            max="8"
-            value="3"
-          >
-        </label>
-      </header>
+  <section class="workbench" id="workbench" hidden aria-hidden="true">
+      <div class="workbench__inner">
+        <header class="workbench__header">
+          <h1 class="workbench__title">
+            Минимизация ДНФ (<span id="title-n">N=3</span>)
+          </h1>
+          <label class="workbench__n-field" for="workbench-n">
+            <span class="workbench__n-label">Число переменных N:</span>
+            <input
+              type="number"
+              id="workbench-n"
+              class="workbench__n-input"
+              min="1"
+              max="8"
+              value="3"
+            >
+          </label>
+        </header>
 
-      <div class="workbench__table-wrap">
-        <table class="truth-table" id="truth-table">
-          <thead id="truth-table-head"></thead>
-          <tbody id="truth-table-body"></tbody>
-        </table>
+        <div class="workbench__table-wrap">
+          <table class="truth-table" id="truth-table">
+            <thead id="truth-table-head"></thead>
+            <tbody id="truth-table-body"></tbody>
+          </table>
+        </div>
+
+        <button type="button" class="btn btn--secondary btn--wide" id="btn-next">
+          Далее
+        </button>
+
+        <footer class="workbench__result">
+          Результат МДНФ: <span id="result-mdnf">—</span>
+        </footer>
       </div>
+  </section>
 
-      <button type="button" class="btn btn--secondary btn--wide" id="btn-next">
-        Далее
-      </button>
-
-      <footer class="workbench__result">
-        Результат МДНФ: <span id="result-mdnf">—</span>
-      </footer>
-    </section>
+  <div class="overlay-panel overlay-panel--modal" id="game-result" hidden>
+    <div class="setup__card game-result__card">
+      <h2 class="setup__title">Победа!</h2>
+      <p class="game-result__label">МДНФ</p>
+      <p class="game-result__mdnf" id="game-result-mdnf">—</p>
+      <p class="game-result__meta">
+        Время: <strong id="game-result-time">—</strong><br>
+        Лучшее: <strong id="game-result-best">—</strong>
+      </p>
+      <p class="game-result__vs" id="game-result-vs" hidden></p>
+      <div class="game-result__challenge" id="game-result-challenge" hidden>
+        <p class="game-result__label">Ссылка для друга</p>
+        <div class="challenge-url-row">
+          <input
+            type="text"
+            class="challenge-url__input"
+            id="game-challenge-url"
+            readonly
+            aria-label="Ссылка на вызов"
+          >
+          <button type="button" class="btn btn--secondary" id="btn-copy-challenge">Копировать</button>
+        </div>
+        <p class="game-result__challenge-hint">Отправьте ссылку — друг откроет ту же задачу и сравнит время с вашим.</p>
+      </div>
+      <button type="button" class="btn btn--primary btn--wide" id="btn-game-play-again">Играть ещё раз</button>
+      <button type="button" class="btn btn--secondary btn--wide" id="btn-game-main-menu">Главное меню</button>
+    </div>
   </div>
 
-  <script src="/static/js/table.js?v=12"></script>
-  <script src="/static/js/main.js?v=12"></script>
+  <script src="/static/js/header.js?v=24"></script>
+  <script src="/static/js/game-store.js?v=24"></script>
+  <script src="/static/js/profile-store.js?v=24"></script>
+  <script src="/static/js/game-challenge.js?v=24"></script>
+  <script src="/static/js/table.js?v=24"></script>
+  <script src="/static/js/main.js?v=24"></script>
+  <script src="/static/js/game.js?v=24"></script>
 </body>
 </html>
