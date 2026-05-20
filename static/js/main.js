@@ -13,6 +13,14 @@ const tableBody = document.getElementById("truth-table-body");
 const btnNext = document.getElementById("btn-next");
 
 let currentN = 3;
+let algorithmStep = 0;
+
+function resetAlgorithm() {
+  algorithmStep = 0;
+  delete tableBody.dataset.locked;
+  delete tableBody.dataset.step;
+  workbench.classList.remove("workbench--locked");
+}
 
 function showSetupError(message) {
   setupError.textContent = message;
@@ -39,6 +47,7 @@ function openWorkbench(n) {
   workbench.setAttribute("aria-hidden", "false");
   landing.setAttribute("aria-hidden", "true");
 
+  resetAlgorithm();
   TruthTable.buildTruthTable(currentN, tableHead, tableBody);
 }
 
@@ -67,9 +76,38 @@ workbenchNInput.addEventListener("change", () => {
   currentN = n;
   titleN.textContent = `N=${n}`;
   varCountInput.value = String(n);
+  resetAlgorithm();
   TruthTable.buildTruthTable(currentN, tableHead, tableBody);
 });
 
 btnNext.addEventListener("click", () => {
-  // следующий шаг алгоритма — позже
+  if (algorithmStep === 0) {
+    if (typeof TruthTable.lockFunctionColumn !== "function") {
+      console.error("Обновите страницу (Ctrl+Shift+R): загружена старая версия скриптов.");
+      return;
+    }
+    TruthTable.lockFunctionColumn(tableBody);
+    algorithmStep = 1;
+    workbench.classList.add("workbench--locked");
+    return;
+  }
+
+  if (algorithmStep === 1) {
+    if (typeof TruthTable.strikeAlgoColumns !== "function") {
+      console.error("Обновите страницу (Ctrl+Shift+R): загружена старая версия скриптов.");
+      return;
+    }
+    TruthTable.strikeAlgoColumns(tableBody);
+    algorithmStep = 2;
+    return;
+  }
+
+  if (algorithmStep === 2) {
+    if (typeof TruthTable.strikeAlgoExceptMinimum !== "function") {
+      console.error("Обновите страницу (Ctrl+Shift+R): загружена старая версия скриптов.");
+      return;
+    }
+    TruthTable.strikeAlgoExceptMinimum(tableBody);
+    algorithmStep = 3;
+  }
 });

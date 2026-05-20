@@ -7,35 +7,108 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/style.css?v=11">
 </head>
 <body>
   <div class="page" id="page">
     <section class="landing" id="landing">
-      <header class="landing__header">
-        <span class="logo">mindnf</span>
-        <span class="tag">гарвардский алгоритм</span>
+      <header class="site-header">
+        <a class="site-header__logo" href="/" aria-label="На главную">
+          <img src="/static/img/SB_logo.png" alt="Снежок Банк" width="160" height="40">
+        </a>
+        <nav class="site-header__nav" aria-label="Разделы страницы">
+          <a class="site-header__link" href="#algorithm">Как работает алгоритм</a>
+          <a class="site-header__link" href="#stack">Стек разработки</a>
+          <a class="site-header__link" href="#sponsors">Спонсоры</a>
+        </nav>
       </header>
 
-      <main class="landing__main">
-        <h1 class="landing__title">Минимизация<br>дизъюнктивной<br>нормальной формы</h1>
-        <p class="landing__text">
-          Интерактивный инструмент для пошагового свёртывания ДНФ булевой функции
-          методом попарного объединения импликант (гарвардский алгоритм).
-          Задайте число переменных, введите таблицу истинности или карту Карно —
-          и получите минимальное покрытие.
-        </p>
-        <ul class="landing__features">
-          <li>Попарное объединение соседних кубов</li>
-          <li>Таблица простых импликант</li>
-          <li>Выбор минимального покрытия</li>
-        </ul>
-      </main>
+      <div class="hero">
+        <img
+          class="hero__image"
+          src="/static/img/kot.jpg"
+          alt=""
+          width="1920"
+          height="1440"
+          fetchpriority="high"
+        >
+        <div class="hero__overlay" aria-hidden="true"></div>
+        <div class="hero__content">
+          <p class="hero__eyebrow">Гарвардский алгоритм</p>
+          <h1 class="hero__title">Минимизация дизъюнктивной нормальной формы</h1>
+          <p class="hero__text">
+            Пошаговая таблица истинности, зачёркивание импликант и поиск минимального покрытия.
+          </p>
+          <button type="button" class="btn btn--primary btn--hero" id="btn-start-landing">
+            Начать
+          </button>
+        </div>
+      </div>
 
-      <footer class="landing__footer">
-        <button type="button" class="btn btn--primary btn--hero" id="btn-start-landing">
-          Начать
-        </button>
+      <div class="landing-sections">
+        <section class="info-block" id="algorithm">
+          <h2 class="info-block__title">Как работает алгоритм</h2>
+          <div class="info-block__body">
+            <p>
+              Инструмент проводит вас через классический гарвардский метод минимизации ДНФ
+              на интерактивной таблице.
+            </p>
+            <ol class="info-block__steps">
+              <li><strong>Шаг 1.</strong> Заполните столбец <code>f</code> и нажмите «Далее» — строки с нулём функции зачёркиваются.</li>
+              <li><strong>Шаг 2.</strong> В каждом столбце после <code>f</code> зачёркиваются все комбинации, встречавшиеся в исключённых строках.</li>
+              <li><strong>Шаг 3.</strong> В каждой строке остаётся только минимальная незачёрнутая комбинация.</li>
+            </ol>
+            <p>
+              Далее по отмеченным импликантам можно собрать минимальную ДНФ — этот этап будет добавлен в следующих версиях.
+            </p>
+          </div>
+        </section>
+
+        <section class="info-block" id="stack">
+          <h2 class="info-block__title">Стек разработки</h2>
+          <div class="info-block__body">
+            <ul class="info-block__tags">
+              <li>Python 3</li>
+              <li>FastAPI</li>
+              <li>Jinja2</li>
+              <li>Vanilla JavaScript</li>
+              <li>CSS</li>
+              <li>Uvicorn</li>
+            </ul>
+            <p>
+              Расчёты выполняются в браузере — сервер отдаёт страницу и статику.
+              Хостинг: <a href="https://render.com" rel="noopener noreferrer">Render</a>.
+            </p>
+          </div>
+        </section>
+
+        <section class="info-block info-block--sponsors" id="sponsors">
+          <h2 class="info-block__title">Спонсоры</h2>
+          <div class="info-block__body info-block__sponsor-card">
+            <img
+              class="info-block__sponsor-logo"
+              src="/static/img/SB_logo.png"
+              alt="Снежок Банк"
+              width="200"
+              height="50"
+            >
+            <p>
+              Проект поддерживается <strong>Снежок Банк</strong> — спасибо за помощь в разработке и публикации сервиса.
+            </p>
+          </div>
+        </section>
+      </div>
+
+      <footer class="site-footer">
+        <div class="site-footer__inner">
+          <span class="site-footer__brand">mindnf</span>
+          <p class="site-footer__copy">© 2026 mindnf. Минимизация ДНФ по гарвардскому алгоритму.</p>
+          <nav class="site-footer__nav" aria-label="Подвал">
+            <a href="#algorithm">Алгоритм</a>
+            <a href="#stack">Стек</a>
+            <a href="#sponsors">Спонсоры</a>
+          </nav>
+        </div>
       </footer>
     </section>
 
@@ -97,7 +170,7 @@
     </section>
   </div>
 
-  <script src="/static/js/table.js"></script>
-  <script src="/static/js/main.js"></script>
+  <script src="/static/js/table.js?v=11"></script>
+  <script src="/static/js/main.js?v=11"></script>
 </body>
 </html>
