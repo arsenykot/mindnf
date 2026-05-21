@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=25">
+  <link rel="stylesheet" href="/static/css/style.css?v=26">
 </head>
 <body class="body--profile">
   <header class="site-header site-header--global site-header--static" id="site-header">
@@ -74,11 +74,36 @@
 
         <div class="profile-stats" id="profile-stats">
           <h2 class="profile-stats__title">Статистика игры</h2>
-          <ul class="profile-stats__list">
-            <li>Лучшее время: <strong id="profile-best-time">—</strong></li>
-            <li>Побед: <strong id="profile-wins">0</strong></li>
-            <li>Игр: <strong id="profile-games">0</strong></li>
-          </ul>
+          <div class="profile-stats__grid">
+            <div class="profile-stat profile-stat--highlight">
+              <span class="profile-stat__value" id="profile-best-time">—</span>
+              <span class="profile-stat__label">Рекорд</span>
+            </div>
+            <div class="profile-stat">
+              <span class="profile-stat__value" id="profile-avg-time">—</span>
+              <span class="profile-stat__label">Среднее время</span>
+            </div>
+            <div class="profile-stat">
+              <span class="profile-stat__value" id="profile-games">0</span>
+              <span class="profile-stat__label">Прохождений</span>
+            </div>
+            <div class="profile-stat">
+              <span class="profile-stat__value" id="profile-flashes">0</span>
+              <span class="profile-stat__label">Ошибочных кликов</span>
+            </div>
+            <div class="profile-stat">
+              <span class="profile-stat__value" id="profile-flashes-per-game">—</span>
+              <span class="profile-stat__label">Ошибок на игру</span>
+            </div>
+            <div class="profile-stat">
+              <span class="profile-stat__value" id="profile-unique-mdnf">0</span>
+              <span class="profile-stat__label">Разных МДНФ</span>
+            </div>
+            <div class="profile-stat profile-stat--wide">
+              <span class="profile-stat__value profile-stat__value--small" id="profile-last-played">—</span>
+              <span class="profile-stat__label">Последняя игра</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -118,9 +143,9 @@
     </div>
   </footer>
 
-  <script src="/static/js/header.js?v=25"></script>
-  <script src="/static/js/game-store.js?v=25"></script>
-  <script src="/static/js/profile-store.js?v=25"></script>
-  <script src="/static/js/profile.js?v=25"></script>
+  <script src="/static/js/header.js?v=26"></script>
+  <script src="/static/js/game-store.js?v=26"></script>
+  <script src="/static/js/profile-store.js?v=26"></script>
+  <script src="/static/js/profile.js?v=26"></script>
 </body>
 </html>

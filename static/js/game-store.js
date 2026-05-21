@@ -9,6 +9,25 @@ const DEFAULT_STATS = {
   totalFlashes: 0,
 };
 
+function isQuotaError(err) {
+  return (
+    err
+    && (err.name === "QuotaExceededError"
+      || err.name === "NS_ERROR_DOM_QUOTA_REACHED"
+      || err.code === 22
+      || err.code === 1014)
+  );
+}
+
+function setStorageItem(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return { ok: true, quotaExceeded: false };
+  } catch (err) {
+    return { ok: false, quotaExceeded: isQuotaError(err) };
+  }
+}
+
 function loadStats() {
   try {
     const raw = localStorage.getItem(STATS_KEY);
@@ -34,8 +53,8 @@ function saveStats(stats) {
     wins: stats.wins,
     totalFlashes: stats.totalFlashes,
   };
-  localStorage.setItem(STATS_KEY, JSON.stringify(payload));
-  return payload;
+  const result = setStorageItem(STATS_KEY, JSON.stringify(payload));
+  return { saved: result.ok, stats: payload, quotaExceeded: result.quotaExceeded };
 }
 
 function loadHistory() {
@@ -68,9 +87,15 @@ function loadHistory() {
 }
 
 function saveHistory(history) {
-  const payload = history.slice(0, HISTORY_MAX);
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(payload));
-  return payload;
+  let payload = history.slice(0, HISTORY_MAX);
+  let result = setStorageItem(HISTORY_KEY, JSON.stringify(payload));
+
+  while (!result.ok && result.quotaExceeded && payload.length > 1) {
+    payload = payload.slice(0, Math.max(1, Math.floor(payload.length / 2)));
+    result = setStorageItem(HISTORY_KEY, JSON.stringify(payload));
+  }
+
+  return { saved: result.ok, history: payload, quotaExceeded: result.quotaExceeded };
 }
 
 function recordWin(timeMs, mdnf = "—") {
@@ -86,8 +111,13 @@ function recordWin(timeMs, mdnf = "—") {
     mdnf: typeof mdnf === "string" && mdnf.trim() ? mdnf.trim() : "—",
     playedAt: Date.now(),
   });
-  saveHistory(history);
-  return saveStats(stats);
+  const historyResult = saveHistory(history);
+  const statsResult = saveStats(stats);
+  return {
+    ...statsResult.stats,
+    storageOk: historyResult.saved && statsResult.saved,
+    storageWarning: !historyResult.saved || !statsResult.saved,
+  };
 }
 
 function formatHistoryDate(ts) {
@@ -103,7 +133,8 @@ function formatHistoryDate(ts) {
 function recordFlash() {
   const stats = loadStats();
   stats.totalFlashes += 1;
-  return saveStats(stats);
+  const result = saveStats(stats);
+  return { ...result.stats, storageOk: result.saved };
 }
 
 function formatTime(ms) {
@@ -114,10 +145,37 @@ function formatTime(ms) {
   return `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}.${tenths}`;
 }
 
+function computeProfileSummary() {
+  const stats = loadStats();
+  const history = loadHistory();
+  const times = history.map((row) => row.timeMs);
+  const avgTimeMs =
+    times.length > 0 ? Math.round(times.reduce((sum, t) => sum + t, 0) / times.length) : null;
+  const flashesPerGame =
+    stats.gamesPlayed > 0
+      ? Math.round((stats.totalFlashes / stats.gamesPlayed) * 10) / 10
+      : null;
+  const uniqueMdnf = new Set(
+    history.map((row) => row.mdnf).filter((m) => m && m !== "—"),
+  ).size;
+
+  return {
+    bestTimeMs: stats.bestTimeMs,
+    avgTimeMs,
+    gamesPlayed: stats.gamesPlayed,
+    totalFlashes: stats.totalFlashes,
+    flashesPerGame,
+    lastPlayedAt: history[0]?.playedAt ?? null,
+    uniqueMdnf,
+    historyCount: history.length,
+  };
+}
+
 window.GameStore = {
   STATS_KEY,
   HISTORY_KEY,
   HISTORY_MAX,
+  setStorageItem,
   loadStats,
   saveStats,
   loadHistory,
@@ -126,4 +184,5 @@ window.GameStore = {
   recordFlash,
   formatTime,
   formatHistoryDate,
+  computeProfileSummary,
 };

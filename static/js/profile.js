@@ -34,9 +34,13 @@ function renderProfile() {
 }
 
 function persistProfile() {
-  profile = ProfileStore.saveProfile({ ...profile, name: nameInput.value });
-  renderProfile();
-  showStatus("Сохранено на этом устройстве");
+  try {
+    profile = ProfileStore.saveProfile({ ...profile, name: nameInput.value });
+    renderProfile();
+    showStatus("Сохранено на этом устройстве");
+  } catch (err) {
+    showStatus(err.message || "Не удалось сохранить", true);
+  }
 }
 
 avatarEl.addEventListener("click", () => avatarInput.click());
@@ -65,9 +69,13 @@ avatarInput.addEventListener("change", async () => {
 });
 
 avatarRemoveBtn.addEventListener("click", () => {
-  profile = ProfileStore.saveProfile({ ...profile, avatar: null });
-  renderProfile();
-  showStatus("Аватар удалён");
+  try {
+    profile = ProfileStore.saveProfile({ ...profile, avatar: null });
+    renderProfile();
+    showStatus("Аватар удалён");
+  } catch (err) {
+    showStatus(err.message || "Не удалось сохранить", true);
+  }
 });
 
 nameInput.addEventListener("input", () => {
@@ -87,11 +95,19 @@ nameInput.addEventListener("keydown", (e) => {
 });
 
 function renderStats() {
-  const stats = GameStore.loadStats();
+  const summary = GameStore.computeProfileSummary();
+
   document.getElementById("profile-best-time").textContent =
-    stats.bestTimeMs === null ? "—" : GameStore.formatTime(stats.bestTimeMs);
-  document.getElementById("profile-wins").textContent = String(stats.wins);
-  document.getElementById("profile-games").textContent = String(stats.gamesPlayed);
+    summary.bestTimeMs === null ? "—" : GameStore.formatTime(summary.bestTimeMs);
+  document.getElementById("profile-avg-time").textContent =
+    summary.avgTimeMs === null ? "—" : GameStore.formatTime(summary.avgTimeMs);
+  document.getElementById("profile-games").textContent = String(summary.gamesPlayed);
+  document.getElementById("profile-flashes").textContent = String(summary.totalFlashes);
+  document.getElementById("profile-flashes-per-game").textContent =
+    summary.flashesPerGame === null ? "—" : String(summary.flashesPerGame);
+  document.getElementById("profile-unique-mdnf").textContent = String(summary.uniqueMdnf);
+  document.getElementById("profile-last-played").textContent =
+    summary.lastPlayedAt === null ? "—" : GameStore.formatHistoryDate(summary.lastPlayedAt);
 }
 
 function renderHistory() {

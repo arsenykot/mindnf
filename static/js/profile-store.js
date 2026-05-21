@@ -26,7 +26,27 @@ function saveProfile(profile) {
     name: (profile.name || DEFAULT_PROFILE.name).trim() || DEFAULT_PROFILE.name,
     avatar: profile.avatar ?? null,
   };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  const json = JSON.stringify(payload);
+  const result = window.GameStore?.setStorageItem
+    ? window.GameStore.setStorageItem(STORAGE_KEY, json)
+    : (() => {
+        try {
+          localStorage.setItem(STORAGE_KEY, json);
+          return { ok: true, quotaExceeded: false };
+        } catch (err) {
+          return {
+            ok: false,
+            quotaExceeded: err?.name === "QuotaExceededError" || err?.code === 22,
+          };
+        }
+      })();
+
+  if (!result.ok) {
+    if (result.quotaExceeded) {
+      throw new Error("Недостаточно места в браузере. Удалите аватар или очистите историю игр.");
+    }
+    throw new Error("Не удалось сохранить профиль.");
+  }
   return payload;
 }
 

@@ -65,7 +65,9 @@ function flash(kind) {
     el.classList.remove("game-flash--red", "game-flash--green");
     el.classList.add(kind === "ok" ? "game-flash--green" : "game-flash--red");
   });
-  GameStore.recordFlash();
+  if (kind !== "ok") {
+    GameStore.recordFlash();
+  }
   window.setTimeout(() => {
     nodes.forEach((el) => {
       el.classList.remove("game-flash--red", "game-flash--green");
@@ -331,8 +333,10 @@ function formatResultMdnf() {
   return "0";
 }
 
-function advanceStep() {
-  flash("ok");
+function advanceStep(flashOnStepComplete = false) {
+  if (flashOnStepComplete) {
+    flash("ok");
+  }
   gameStep += 1;
 
   while (gameStep < 3 && isCurrentStepDone()) {
@@ -363,6 +367,9 @@ function finishGame() {
   gameStarted = false;
   const elapsed = stopTimer();
   const stats = GameStore.recordWin(elapsed, formatResultMdnf());
+  if (stats.storageWarning) {
+    showToast("Мало места в браузере — результат мог сохраниться не полностью");
+  }
   gameResultMdnf.textContent = formatResultMdnf();
   gameResultTime.textContent = GameStore.formatTime(elapsed);
   gameResultBest.textContent =
@@ -417,13 +424,13 @@ function handleStep1Click(tr, row) {
   }
   markRowStep1(tr, row);
   if (step1Done()) {
-    advanceStep();
+    advanceStep(true);
   }
 }
 
 function handleStep2Click(cell, row, colIdx) {
   if (step2Done()) {
-    advanceStep();
+    advanceStep(false);
     return;
   }
   const key = TruthTable.cellKey(row, colIdx);
@@ -434,13 +441,13 @@ function handleStep2Click(cell, row, colIdx) {
   ensureCellMarked(cell, markedStep2, key);
   checkStep2ColumnHints();
   if (step2Done()) {
-    advanceStep();
+    advanceStep(true);
   }
 }
 
 function handleStep3Click(cell, row, colIdx) {
   if (step3Done()) {
-    advanceStep();
+    advanceStep(false);
     return;
   }
   const key = TruthTable.cellKey(row, colIdx);
@@ -451,12 +458,13 @@ function handleStep3Click(cell, row, colIdx) {
   ensureCellMarked(cell, markedStep3, key);
   checkStep3RowHints();
   if (step3Done()) {
-    advanceStep();
+    advanceStep(true);
   }
 }
 
 function onGameCellClick(e) {
   if (!gameStarted) {
+    showToast("Сначала нажмите «Начать» — тогда запустится таймер");
     return;
   }
   const td = e.target.closest("td");
