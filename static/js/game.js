@@ -23,12 +23,30 @@ const gameResultBest = document.getElementById("game-result-best");
 const toastEl = document.getElementById("site-toast");
 const flashLeft = document.getElementById("game-flash-left");
 const flashRight = document.getElementById("game-flash-right");
+const gameStepBurst = document.getElementById("game-step-burst");
+const gameStepBurstTitle = document.getElementById("game-step-burst-title");
+const gameStepBurstHint = document.getElementById("game-step-burst-hint");
+const gameWinBurst = document.getElementById("game-win-burst");
 
-const STEP_HINTS = [
-  "Шаг 1: зачеркните все строки, где f = 0 (номер строки, f или любая ячейка в строке).",
-  "Шаг 2: в каждом столбце после f зачеркните значения из исключённых строк.",
-  "Шаг 3: в каждой оставшейся строке оставьте только минимум — зачеркните остальное.",
+const STEP_BURST_POP_MS = 520;
+const STEP_BURST_FADE_MS = 340;
+const WIN_BURST_POP_MS = 650;
+const WIN_BURST_HOLD_MS = 350;
+const WIN_BURST_FADE_MS = 380;
+
+let stepBurstChain = Promise.resolve();
+/** @type {number[]} */
+let rowMarkTimeouts = [];
+
+const ROW_MARK_STAGGER_MS = 58;
+
+const STEP_BURST_TASKS = [
+  "Зачеркните все строки, где f = 0 (номер строки, f или любая ячейка в строке).",
+  "В каждом столбце после f зачеркните значения из исключённых строк.",
+  "В каждой строке оставьте одну ячейку с наименьшим двоичным значением (при равенстве — в столбце одной переменной).",
 ];
+
+const STEP_HINTS = STEP_BURST_TASKS.map((text, i) => `Шаг ${i + 1}: ${text}`);
 
 let solution = null;
 let fValues = [];
@@ -41,6 +59,8 @@ let markedStep2 = new Set();
 let markedStep3 = new Set();
 let hintColsDone = new Set();
 let hintRowsDone = new Set();
+/** @type {HTMLTableCellElement[]} */
+let algoHeaderCells = [];
 /** @type {"solo" | "challenge-host" | "challenge-guest"} */
 let playMode = "solo";
 let challengeHostTimeMs = null;
@@ -60,19 +80,128 @@ function showToast(message) {
 }
 
 function flash(kind) {
+  if (kind !== "err") {
+    return;
+  }
   const nodes = [flashLeft, flashRight];
   nodes.forEach((el) => {
-    el.classList.remove("game-flash--red", "game-flash--green");
-    el.classList.add(kind === "ok" ? "game-flash--green" : "game-flash--red");
+    el.classList.remove("game-flash--red");
+    el.classList.add("game-flash--red");
   });
-  if (kind !== "ok") {
-    GameStore.recordFlash();
-  }
+  GameStore.recordFlash();
   window.setTimeout(() => {
     nodes.forEach((el) => {
-      el.classList.remove("game-flash--red", "game-flash--green");
+      el.classList.remove("game-flash--red");
     });
   }, 420);
+}
+
+function restartFxChildAnimation(el) {
+  const child = el?.querySelector(".game-step-burst__panel, .game-win-burst__mark");
+  if (!child) {
+    return;
+  }
+  child.style.animation = "none";
+  void child.offsetWidth;
+  child.style.animation = "";
+}
+
+function runGameFx(el, popMs, holdMs, fadeMs) {
+  return new Promise((resolve) => {
+    if (!el) {
+      resolve();
+      return;
+    }
+    restartFxChildAnimation(el);
+    el.classList.remove("is-leaving", "is-active");
+    el.hidden = false;
+    el.setAttribute("aria-hidden", "false");
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        el.classList.add("is-active");
+      });
+    });
+    window.setTimeout(() => {
+      el.classList.add("is-leaving");
+      el.classList.remove("is-active");
+      window.setTimeout(() => {
+        el.classList.remove("is-leaving");
+        el.hidden = true;
+        el.setAttribute("aria-hidden", "true");
+        resolve();
+      }, fadeMs);
+    }, popMs + holdMs);
+  });
+}
+
+function runStepBurstFx() {
+  return new Promise((resolve) => {
+    const el = gameStepBurst;
+    if (!el) {
+      resolve();
+      return;
+    }
+    restartFxChildAnimation(el);
+    el.classList.remove("is-leaving", "is-active", "is-interactive");
+    el.hidden = false;
+    el.setAttribute("aria-hidden", "false");
+
+    let dismissed = false;
+    const finish = () => {
+      if (dismissed) {
+        return;
+      }
+      dismissed = true;
+      el.classList.remove("is-interactive");
+      el.removeEventListener("click", onInteract);
+      window.removeEventListener("keydown", onKey);
+      el.classList.add("is-leaving");
+      el.classList.remove("is-active");
+      window.setTimeout(() => {
+        el.classList.remove("is-leaving");
+        el.hidden = true;
+        el.setAttribute("aria-hidden", "true");
+        resolve();
+      }, STEP_BURST_FADE_MS);
+    };
+
+    const onInteract = () => finish();
+    const onKey = (e) => {
+      if (e.key === "Enter" || e.key === " " || e.key === "Escape") {
+        e.preventDefault();
+        finish();
+      }
+    };
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        el.classList.add("is-active");
+        window.setTimeout(() => {
+          el.classList.add("is-interactive");
+          el.addEventListener("click", onInteract);
+          window.addEventListener("keydown", onKey);
+        }, STEP_BURST_POP_MS);
+      });
+    });
+  });
+}
+
+function playStepBurst(displayStep) {
+  const idx = displayStep - 1;
+  if (!gameStepBurst || !gameStepBurstTitle || !gameStepBurstHint || idx < 0 || idx >= STEP_BURST_TASKS.length) {
+    return Promise.resolve();
+  }
+  gameStepBurstTitle.textContent = `${displayStep} ШАГ`;
+  gameStepBurstHint.textContent = STEP_BURST_TASKS[idx];
+  stepBurstChain = stepBurstChain.then(() => runStepBurstFx());
+  return stepBurstChain;
+}
+
+function playWinBurst() {
+  if (!gameWinBurst) {
+    return Promise.resolve();
+  }
+  return runGameFx(gameWinBurst, WIN_BURST_POP_MS, WIN_BURST_HOLD_MS, WIN_BURST_FADE_MS);
 }
 
 function updateHud() {
@@ -161,27 +290,33 @@ function isZeroRow(row) {
 }
 
 function clearGameMarks() {
+  rowMarkTimeouts.forEach((id) => window.clearTimeout(id));
+  rowMarkTimeouts = [];
   markedStep1 = new Set();
   markedStep2 = new Set();
   markedStep3 = new Set();
   hintColsDone = new Set();
   hintRowsDone = new Set();
   gameTableBody.querySelectorAll(".game-mark").forEach((el) => {
-    el.classList.remove("game-mark");
+    el.classList.remove("game-mark", "game-mark-pop");
   });
   gameTableBody.querySelectorAll(".game-row-marked").forEach((tr) => {
     tr.classList.remove("game-row-marked");
   });
-  gameTableHead.querySelectorAll(".game-hint-blink").forEach((el) => {
-    el.classList.remove("game-hint-blink");
+  gameTableHead.querySelectorAll(".game-hint-blink, .game-hint-done").forEach((el) => {
+    el.classList.remove("game-hint-blink", "game-hint-done");
   });
-  gameTableBody.querySelectorAll(".game-hint-blink").forEach((el) => {
-    el.classList.remove("game-hint-blink");
+  gameTableBody.querySelectorAll(".game-hint-blink, .game-hint-done").forEach((el) => {
+    el.classList.remove("game-hint-blink", "game-hint-done");
   });
 }
 
+function refreshAlgoHeaderCells() {
+  algoHeaderCells = [...gameTableHead.querySelectorAll("th[data-algo-col]")];
+}
+
 function getAlgoHeader(colIdx) {
-  return gameTableHead.querySelector(`th[data-algo-col="${colIdx}"]`);
+  return algoHeaderCells[colIdx] ?? null;
 }
 
 function getRowNumCell(row) {
@@ -192,14 +327,21 @@ function pulseHint(el) {
   if (!el) {
     return;
   }
+  /* Мигание отключено — только плавное закрашивание в зелёный.
   el.classList.remove("game-hint-blink");
   void el.offsetWidth;
   el.classList.add("game-hint-blink");
   const onEnd = () => {
     el.classList.remove("game-hint-blink");
+    void el.offsetWidth;
+    el.classList.add("game-hint-done");
     el.removeEventListener("animationend", onEnd);
   };
   el.addEventListener("animationend", onEnd);
+  */
+  el.classList.remove("game-hint-done");
+  void el.offsetWidth;
+  el.classList.add("game-hint-done");
 }
 
 function step2KeysForColumn(colIdx) {
@@ -210,12 +352,17 @@ function step3KeysForRow(row) {
   return [...solution.step3Keys].filter((key) => Number(key.split(":")[0]) === row);
 }
 
+function isStepKeyMarked(key) {
+  const [row, colIdx] = key.split(":").map(Number);
+  return isAlgoCellMarked(row, colIdx);
+}
+
 function isColumnStep2Complete(colIdx) {
   const keys = step2KeysForColumn(colIdx);
   if (keys.length === 0) {
     return false;
   }
-  return keys.every((key) => markedStep2.has(key));
+  return keys.every(isStepKeyMarked);
 }
 
 function isRowStep3Complete(row) {
@@ -223,13 +370,52 @@ function isRowStep3Complete(row) {
   if (keys.length === 0) {
     return false;
   }
-  return keys.every((key) => markedStep3.has(key));
+  return keys.every(isStepKeyMarked);
 }
 
-function checkStep2ColumnHints() {
-  const colCount = gameTableHead.querySelectorAll("th[data-algo-col]").length;
-  for (let colIdx = 0; colIdx < colCount; colIdx += 1) {
-    if (hintColsDone.has(colIdx) || !isColumnStep2Complete(colIdx)) {
+function checkStep2ColumnHints(onlyColIdx) {
+  if (gameStep !== 1 || onlyColIdx == null || onlyColIdx < 0) {
+    return;
+  }
+  if (hintColsDone.has(onlyColIdx) || !isColumnStep2Complete(onlyColIdx)) {
+    return;
+  }
+  hintColsDone.add(onlyColIdx);
+  pulseHint(getAlgoHeader(onlyColIdx));
+}
+
+function checkStep3RowHints(onlyRow) {
+  if (gameStep !== 2 || onlyRow == null || onlyRow < 0) {
+    return;
+  }
+  if (hintRowsDone.has(onlyRow) || !isRowStep3Complete(onlyRow)) {
+    return;
+  }
+  hintRowsDone.add(onlyRow);
+  pulseHint(getRowNumCell(onlyRow));
+}
+
+/** Столбец на шаге 2 уже «готов»: нечего зачёркивать или всё зачёркнуто. */
+function isColumnStep2Ready(colIdx) {
+  const keys = step2KeysForColumn(colIdx);
+  if (keys.length === 0) {
+    return true;
+  }
+  return keys.every(isStepKeyMarked);
+}
+
+/** Строка на шаге 3 уже «готова»: нечего зачёркивать или всё зачёркнуто. */
+function isRowStep3Ready(row) {
+  const keys = step3KeysForRow(row);
+  if (keys.length === 0) {
+    return true;
+  }
+  return keys.every(isStepKeyMarked);
+}
+
+function markCompletedStep2Hints() {
+  for (let colIdx = 0; colIdx < algoHeaderCells.length; colIdx += 1) {
+    if (hintColsDone.has(colIdx) || !isColumnStep2Ready(colIdx)) {
       continue;
     }
     hintColsDone.add(colIdx);
@@ -237,15 +423,56 @@ function checkStep2ColumnHints() {
   }
 }
 
-function checkStep3RowHints() {
+function markCompletedStep3Hints() {
   const rows = gameTableBody.querySelectorAll("tr").length;
   for (let row = 0; row < rows; row += 1) {
-    if (hintRowsDone.has(row) || !isRowStep3Complete(row)) {
+    if (hintRowsDone.has(row) || !isRowStep3Ready(row)) {
       continue;
     }
     hintRowsDone.add(row);
     pulseHint(getRowNumCell(row));
   }
+}
+
+async function applyHintsAfterStepTransition(fromStep, toStep) {
+  if (!gameStarted) {
+    return;
+  }
+  for (let step = fromStep + 1; step <= toStep && step < 3; step += 1) {
+    await playStepBurst(step + 1);
+    if (step === 1) {
+      markCompletedStep2Hints();
+    }
+    if (step === 2) {
+      markCompletedStep3Hints();
+    }
+  }
+}
+
+function applyGameMark(cell, delayMs = 0) {
+  if (!cell || cell.classList.contains("game-mark")) {
+    return;
+  }
+  const run = () => {
+    if (!cell.isConnected || cell.classList.contains("game-mark")) {
+      return;
+    }
+    cell.classList.add("game-mark", "game-mark-pop");
+    const onPopEnd = (e) => {
+      if (e.target !== cell || e.animationName !== "game-mark-pop") {
+        return;
+      }
+      cell.classList.remove("game-mark-pop");
+      cell.removeEventListener("animationend", onPopEnd);
+    };
+    cell.addEventListener("animationend", onPopEnd);
+  };
+  if (delayMs <= 0) {
+    run();
+    return;
+  }
+  const id = window.setTimeout(run, delayMs);
+  rowMarkTimeouts.push(id);
 }
 
 function markRowStep1(tr, row) {
@@ -254,10 +481,14 @@ function markRowStep1(tr, row) {
   }
   markedStep1.add(row);
   tr.classList.add("game-row-marked");
-  tr.querySelectorAll("td").forEach((td) => {
-    if (!td.classList.contains("truth-table__bit--before")) {
-      td.classList.add("game-mark");
-    }
+  const cells = [...tr.querySelectorAll("td")].filter(
+    (td) => !td.classList.contains("truth-table__bit--before"),
+  );
+  const staggerMs = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ? 0
+    : ROW_MARK_STAGGER_MS;
+  cells.forEach((td, index) => {
+    applyGameMark(td, index * staggerMs);
   });
 }
 
@@ -274,7 +505,7 @@ function ensureCellMarked(cell, set, key) {
   if (!set.has(key)) {
     set.add(key);
   }
-  cell.classList.add("game-mark");
+  applyGameMark(cell);
 }
 
 function step1Done() {
@@ -333,10 +564,8 @@ function formatResultMdnf() {
   return "0";
 }
 
-function advanceStep(flashOnStepComplete = false) {
-  if (flashOnStepComplete) {
-    flash("ok");
-  }
+async function advanceStep() {
+  const fromStep = gameStep;
   gameStep += 1;
 
   while (gameStep < 3 && isCurrentStepDone()) {
@@ -344,23 +573,26 @@ function advanceStep(flashOnStepComplete = false) {
   }
 
   updateHud();
+  await applyHintsAfterStepTransition(fromStep, gameStep);
 
   if (gameStep >= 3) {
-    finishGame();
+    await finishGame();
   }
 }
 
-function tryAutoAdvance() {
+async function tryAutoAdvance() {
+  const fromStep = gameStep;
   while (gameStarted && gameStep < 3 && isCurrentStepDone()) {
     gameStep += 1;
   }
   updateHud();
+  await applyHintsAfterStepTransition(fromStep, gameStep);
   if (gameStep >= 3) {
-    finishGame();
+    await finishGame();
   }
 }
 
-function finishGame() {
+async function finishGame() {
   if (!gameStarted) {
     return;
   }
@@ -411,10 +643,11 @@ function finishGame() {
     gameResultVs.classList.remove("game-result__vs--win", "game-result__vs--lose");
   }
 
+  await playWinBurst();
   showResultModal();
 }
 
-function handleStep1Click(tr, row) {
+async function handleStep1Click(tr, row) {
   if (!isZeroRow(row)) {
     flash("err");
     return;
@@ -424,13 +657,13 @@ function handleStep1Click(tr, row) {
   }
   markRowStep1(tr, row);
   if (step1Done()) {
-    advanceStep(true);
+    await advanceStep();
   }
 }
 
-function handleStep2Click(cell, row, colIdx) {
+async function handleStep2Click(cell, row, colIdx) {
   if (step2Done()) {
-    advanceStep(false);
+    await advanceStep();
     return;
   }
   const key = TruthTable.cellKey(row, colIdx);
@@ -439,15 +672,15 @@ function handleStep2Click(cell, row, colIdx) {
     return;
   }
   ensureCellMarked(cell, markedStep2, key);
-  checkStep2ColumnHints();
+  checkStep2ColumnHints(colIdx);
   if (step2Done()) {
-    advanceStep(true);
+    await advanceStep();
   }
 }
 
-function handleStep3Click(cell, row, colIdx) {
+async function handleStep3Click(cell, row, colIdx) {
   if (step3Done()) {
-    advanceStep(false);
+    await advanceStep();
     return;
   }
   const key = TruthTable.cellKey(row, colIdx);
@@ -456,13 +689,13 @@ function handleStep3Click(cell, row, colIdx) {
     return;
   }
   ensureCellMarked(cell, markedStep3, key);
-  checkStep3RowHints();
+  checkStep3RowHints(row);
   if (step3Done()) {
-    advanceStep(true);
+    await advanceStep();
   }
 }
 
-function onGameCellClick(e) {
+async function onGameCellClick(e) {
   if (!gameStarted) {
     showToast("Сначала нажмите «Начать» — тогда запустится таймер");
     return;
@@ -480,7 +713,7 @@ function onGameCellClick(e) {
   }
 
   if (gameStep === 0) {
-    handleStep1Click(tr, row);
+    await handleStep1Click(tr, row);
     return;
   }
 
@@ -491,9 +724,9 @@ function onGameCellClick(e) {
   if (algoCell) {
     const colIdx = Number(algoCell.dataset.algoCol);
     if (gameStep === 1) {
-      handleStep2Click(algoCell, row, colIdx);
+      await handleStep2Click(algoCell, row, colIdx);
     } else if (gameStep === 2) {
-      handleStep3Click(algoCell, row, colIdx);
+      await handleStep3Click(algoCell, row, colIdx);
     }
     return;
   }
@@ -513,7 +746,9 @@ function buildGameTable(presetFValues = null) {
   TruthTable.buildTruthTable(GAME_N, gameTableHead, gameTableBody, {
     fValues,
     lockF: true,
+    gameCompact: true,
   });
+  refreshAlgoHeaderCells();
   bindGameTable();
 }
 
@@ -538,6 +773,15 @@ function resetGameUi() {
   if (gameTableWrap) {
     gameTableWrap.classList.remove("game-table-wrap--dimmed");
   }
+  [gameStepBurst, gameWinBurst].forEach((el) => {
+    if (!el) {
+      return;
+    }
+    el.classList.remove("is-active", "is-leaving", "is-interactive");
+    el.hidden = true;
+    el.setAttribute("aria-hidden", "true");
+  });
+  stepBurstChain = Promise.resolve();
   document.body.classList.remove("app-game-mode", "app-game");
   gamePage?.classList.remove("page--game-mode", "page--game");
 }
@@ -649,7 +893,7 @@ function tryOpenChallengeFromUrl() {
   return true;
 }
 
-function startSoloGame() {
+async function startSoloGame() {
   gameInstruction.hidden = true;
   gameTableWrap.classList.remove("game-table-wrap--dimmed");
   gameStarted = true;
@@ -657,7 +901,8 @@ function startSoloGame() {
   clearGameMarks();
   updateHud();
   startTimer();
-  tryAutoAdvance();
+  await playStepBurst(1);
+  await tryAutoAdvance();
 }
 
 function closeGame() {

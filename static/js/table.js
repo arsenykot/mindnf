@@ -62,17 +62,20 @@ function buildTruthTable(n, tableHead, tableBody, options = {}) {
   const { singles, combos } = groupColumns(n);
   const fValues = options.fValues ?? Array(rows).fill("0");
   const lockF = options.lockF ?? false;
+  const gameCompact = options.gameCompact ?? false;
 
   const headRow = document.createElement("tr");
   headRow.appendChild(th("#"));
 
-  singles.forEach((col, i) => {
-    const cell = th(col.label);
-    if (i === singles.length - 1) {
-      cell.classList.add("truth-table__sep");
-    }
-    headRow.appendChild(cell);
-  });
+  if (!gameCompact) {
+    singles.forEach((col, i) => {
+      const cell = th(col.label);
+      if (i === singles.length - 1) {
+        cell.classList.add("truth-table__sep");
+      }
+      headRow.appendChild(cell);
+    });
+  }
   headRow.appendChild(th("f", "truth-table__sep"));
   singles.forEach((col, i) => {
     const cell = th(col.label);
@@ -99,14 +102,16 @@ function buildTruthTable(n, tableHead, tableBody, options = {}) {
     num.textContent = String(row + 1);
     tr.appendChild(num);
 
-    singles.forEach((col, i) => {
-      const cell = tdBit(bitAt(row, col.indices[0]));
-      cell.classList.add("truth-table__bit--before");
-      if (i === singles.length - 1) {
-        cell.classList.add("truth-table__sep");
-      }
-      tr.appendChild(cell);
-    });
+    if (!gameCompact) {
+      singles.forEach((col, i) => {
+        const cell = tdBit(bitAt(row, col.indices[0]));
+        cell.classList.add("truth-table__bit--before");
+        if (i === singles.length - 1) {
+          cell.classList.add("truth-table__sep");
+        }
+        tr.appendChild(cell);
+      });
+    }
 
     const fCell = lockF ? tdFunctionLocked(row, fValues[row]) : tdFunction(row, fValues[row]);
     fCell.classList.add("truth-table__sep");
@@ -212,6 +217,48 @@ function rowAlgoValues(n, row) {
   return values;
 }
 
+/**
+ * Учебный минимум в строке (шаг 3): наименьшее двоичное значение;
+ * при равенстве — одиночный столбец (A, B, …), затем более короткая запись.
+ */
+function pickRowMinimumActive(active, n) {
+  const singlesCount = groupColumns(n).singles.length;
+
+  function rank(item) {
+    const num = Number.parseInt(item.value, 2);
+    return {
+      num: Number.isFinite(num) ? num : Number.POSITIVE_INFINITY,
+      preferSingle: item.colIdx < singlesCount ? 0 : 1,
+      len: item.value.length,
+      colIdx: item.colIdx,
+    };
+  }
+
+  let best = active[0];
+  let bestRank = rank(best);
+
+  for (let i = 1; i < active.length; i += 1) {
+    const cur = active[i];
+    const r = rank(cur);
+    if (
+      r.num < bestRank.num
+      || (r.num === bestRank.num && r.preferSingle < bestRank.preferSingle)
+      || (r.num === bestRank.num
+        && r.preferSingle === bestRank.preferSingle
+        && r.len < bestRank.len)
+      || (r.num === bestRank.num
+        && r.preferSingle === bestRank.preferSingle
+        && r.len === bestRank.len
+        && r.colIdx < bestRank.colIdx)
+    ) {
+      best = cur;
+      bestRank = r;
+    }
+  }
+
+  return best;
+}
+
 function implicantFromAlgoCol(n, algoCol, value) {
   const { singles, combos } = groupColumns(n);
   if (algoCol < singles.length) {
@@ -267,12 +314,12 @@ function computeGameSolution(n, fValues) {
     if (active.length === 0) {
       continue;
     }
-    const minimum = active.map((a) => a.value).sort()[0];
+    const minItem = pickRowMinimumActive(active, n);
     active.forEach((item) => {
-      if (item.value !== minimum) {
-        step3Keys.add(item.key);
-      } else {
+      if (item.key === minItem.key) {
         minKeys.add(item.key);
+      } else {
+        step3Keys.add(item.key);
       }
     });
   }
@@ -353,21 +400,33 @@ function strikeAlgoColumns(tableBody) {
 }
 
 /** Шаг 3: в каждой строке после f оставить только минимальное незачёркнутое значение. */
-function strikeAlgoExceptMinimum(tableBody) {
+function strikeAlgoExceptMinimum(tableBody, n) {
   const rows = [...tableBody.querySelectorAll("tr")];
+  const colCount = getAlgoColCount(rows);
 
   rows.forEach((tr) => {
-    const activeCells = [...tr.querySelectorAll(".truth-table__algo-col")].filter(
-      (cell) => !cell.classList.contains("truth-table__algo-col--struck"),
-    );
-
-    if (activeCells.length === 0) {
+    if (tr.classList.contains("truth-table__row--zero")) {
       return;
     }
 
-    const minimum = activeCells
-      .map((cell) => cell.textContent.trim())
-      .sort()[0];
+    const active = [];
+    for (let colIdx = 0; colIdx < colCount; colIdx += 1) {
+      const cell = getAlgoCell(tr, colIdx);
+      if (!cell || cell.classList.contains("truth-table__algo-col--struck")) {
+        continue;
+      }
+      active.push({
+        colIdx,
+        value: cell.textContent.trim(),
+        cell,
+      });
+    }
+
+    if (active.length === 0) {
+      return;
+    }
+
+    const minItem = pickRowMinimumActive(active, n);
 
     tr.querySelectorAll(".truth-table__algo-col").forEach((cell) => {
       cell.classList.remove("truth-table__algo-col--min");
@@ -376,10 +435,11 @@ function strikeAlgoExceptMinimum(tableBody) {
         return;
       }
 
-      if (cell.textContent.trim() !== minimum) {
-        cell.classList.add("truth-table__algo-col--struck");
-      } else {
+      const colIdx = Number(cell.dataset.algoCol);
+      if (colIdx === minItem.colIdx) {
         cell.classList.add("truth-table__algo-col--min");
+      } else {
+        cell.classList.add("truth-table__algo-col--struck");
       }
     });
   });

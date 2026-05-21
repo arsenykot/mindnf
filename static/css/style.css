@@ -775,6 +775,16 @@ body.app-workbench .site-header__link--anchors,
   background: transparent;
 }
 
+/* В игре f заблокирован по значению, но клик по ячейке зачёркивает строку (шаг 1) */
+.game-table-wrap .truth-table__f--locked {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.game-table-wrap .truth-table__f--locked:hover {
+  background: var(--accent-soft);
+}
+
 .truth-table__f--one {
   color: var(--accent);
   font-weight: 600;
@@ -857,8 +867,10 @@ body.app-workbench .site-header__link--anchors,
   flex-direction: column;
 }
 
-.body--profile .site-header--global {
+.body--profile .site-header {
   flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .site-header--static {
@@ -875,8 +887,37 @@ body.app-workbench .site-header__link--anchors,
   display: flex;
   align-items: stretch;
   justify-content: center;
-  padding: 1.75rem 1.5rem 2.5rem;
+  padding: calc(3.5rem + 1.75rem) 1.5rem 2.5rem;
   min-height: 0;
+}
+
+@media (max-width: 640px) {
+  .body--profile .site-header__toggle {
+    display: inline-flex;
+  }
+
+  .body--profile .site-header__nav {
+    display: none;
+    width: 100%;
+  }
+
+  .body--profile .site-header--open .site-header__nav {
+    display: flex;
+  }
+
+  .profile-page {
+    padding-top: calc(3.25rem + 1.25rem);
+  }
+}
+
+@media (min-width: 641px) {
+  .body--profile .site-header__toggle {
+    display: none;
+  }
+
+  .body--profile .site-header__nav {
+    display: flex;
+  }
 }
 
 .profile-layout {
@@ -1145,11 +1186,35 @@ body.app-workbench .site-header__link--anchors,
   text-decoration-color: rgba(246, 241, 232, 0.65);
 }
 
+.game-mark-pop {
+  animation: game-mark-pop 0.22s ease-out;
+  transform-origin: center center;
+}
+
+@keyframes game-mark-pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(0.96);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-mark-pop {
+    animation: none;
+  }
+}
+
+/* Мигание отключено — оставлено только плавное закрашивание .game-hint-done
 @keyframes game-hint-blink {
   0%,
   100% {
-    background: var(--surface-raised);
-    color: var(--text);
+    background: rgba(15, 39, 68, 0.04);
+    color: var(--muted);
     box-shadow: none;
   }
   50% {
@@ -1159,9 +1224,47 @@ body.app-workbench .site-header__link--anchors,
   }
 }
 
-.truth-table thead th.game-hint-blink,
+@keyframes game-hint-blink-header {
+  0%,
+  100% {
+    background: var(--surface-raised);
+    color: var(--text);
+    box-shadow: none;
+  }
+  50% {
+    background: rgba(34, 120, 70, 0.32);
+    color: var(--accent);
+    box-shadow: inset 0 0 0 2px rgba(34, 120, 70, 0.6);
+  }
+}
+
+.truth-table thead th.game-hint-blink {
+  animation: game-hint-blink-header 0.5s ease-in-out 3;
+}
+
 .truth-table__num.game-hint-blink {
   animation: game-hint-blink 0.5s ease-in-out 3;
+}
+*/
+
+.truth-table thead th.game-hint-done {
+  background: rgba(34, 120, 70, 0.32);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 2px rgba(34, 120, 70, 0.6);
+  transition:
+    background 0.5s ease,
+    color 0.5s ease,
+    box-shadow 0.5s ease;
+}
+
+.truth-table__num.game-hint-done {
+  background: rgba(34, 120, 70, 0.28);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 2px rgba(34, 120, 70, 0.55);
+  transition:
+    background 0.5s ease,
+    color 0.5s ease,
+    box-shadow 0.5s ease;
 }
 
 .game-row-marked .truth-table__bit--before {
@@ -1251,6 +1354,138 @@ body.app-workbench .site-header__link--anchors,
 
 .challenge-url-row .btn {
   flex-shrink: 0;
+}
+
+/* —— Game FX (только режим «Играть») —— */
+
+.game-fx {
+  position: fixed;
+  inset: 0;
+  z-index: 260;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  backdrop-filter: blur(0);
+  -webkit-backdrop-filter: blur(0);
+  background: rgba(246, 241, 232, 0);
+  transition:
+    opacity 0.32s ease,
+    backdrop-filter 0.38s ease,
+    background 0.38s ease,
+    visibility 0s linear 0.32s;
+}
+
+.game-fx.is-active {
+  opacity: 1;
+  visibility: visible;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(246, 241, 232, 0.78);
+  transition:
+    opacity 0.28s ease,
+    backdrop-filter 0.35s ease,
+    background 0.35s ease,
+    visibility 0s;
+}
+
+.game-fx.is-leaving {
+  opacity: 0;
+  backdrop-filter: blur(0);
+  -webkit-backdrop-filter: blur(0);
+  background: rgba(246, 241, 232, 0);
+}
+
+.game-step-burst.is-interactive {
+  pointer-events: auto;
+  cursor: default;
+}
+
+.game-step-burst__panel {
+  max-width: min(36rem, 92vw);
+  padding: 0 1.5rem;
+  text-align: center;
+  transform: scale(0.12);
+  opacity: 0;
+}
+
+.game-fx.is-active .game-step-burst__panel {
+  animation: game-step-panel-pop 0.52s cubic-bezier(0.22, 1, 0.32, 1) forwards;
+}
+
+@keyframes game-step-panel-pop {
+  0% {
+    transform: scale(0.12);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.game-step-burst__title {
+  margin: 0 0 1rem;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: clamp(2.25rem, 11vw, 4.5rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  text-shadow: 0 8px 32px rgba(15, 39, 68, 0.1);
+}
+
+.game-step-burst__hint {
+  margin: 0 0 1.75rem;
+  font-size: clamp(0.85rem, 2.6vw, 1rem);
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.game-step-burst__continue {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.game-win-burst {
+  z-index: 270;
+}
+
+.game-win-burst__mark {
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: clamp(3.5rem, 14vw, 7rem);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--accent);
+  transform: scale(0.1);
+  opacity: 0;
+}
+
+.game-fx.is-active .game-win-burst__mark {
+  animation: game-win-mark-pop 0.65s cubic-bezier(0.22, 1, 0.28, 1) forwards;
+}
+
+@keyframes game-win-mark-pop {
+  0% {
+    transform: scale(0.1);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .game-flash {

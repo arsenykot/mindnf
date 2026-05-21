@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=26">
+  <link rel="stylesheet" href="/static/css/style.css?v=28">
 </head>
 <body>
   <header class="site-header site-header--global" id="site-header">
@@ -35,6 +35,17 @@
 
   <div class="game-flash game-flash--left" id="game-flash-left" aria-hidden="true"></div>
   <div class="game-flash game-flash--right" id="game-flash-right" aria-hidden="true"></div>
+
+  <div class="game-fx game-step-burst" id="game-step-burst" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="game-step-burst-title">
+    <div class="game-step-burst__panel">
+      <p class="game-step-burst__title" id="game-step-burst-title">1 ШАГ</p>
+      <p class="game-step-burst__hint" id="game-step-burst-hint"></p>
+      <p class="game-step-burst__continue">Нажмите в любое место, чтобы продолжить</p>
+    </div>
+  </div>
+  <div class="game-fx game-win-burst" id="game-win-burst" hidden aria-hidden="true">
+    <span class="game-win-burst__mark" aria-hidden="true">✓</span>
+  </div>
 
   <div class="site-toast" id="site-toast" role="status" hidden></div>
 
@@ -78,7 +89,7 @@
             <ol class="info-block__steps">
               <li><strong>Шаг 1.</strong> Зачеркните строки, где <code>f = 0</code>.</li>
               <li><strong>Шаг 2.</strong> В каждом столбце после <code>f</code> — значения из исключённых строк.</li>
-              <li><strong>Шаг 3.</strong> В каждой строке оставьте только минимум.</li>
+              <li><strong>Шаг 3.</strong> В каждой строке оставьте ячейку с наименьшим двоичным значением (при равенстве — в столбце одной переменной).</li>
             </ol>
             <p>
               Кнопка <strong>Построить по данным</strong> открывает ввод числа переменных и таблицу,
@@ -195,7 +206,7 @@
             <ol class="info-block__steps game-instruction__steps">
               <li>Зачеркните все строки, где <code>f = 0</code>.</li>
               <li>В столбцах после <code>f</code> — все совпадающие комбинации из этих строк.</li>
-              <li>В каждой оставшейся строке оставьте только минимум.</li>
+              <li>В каждой строке оставьте минимум по значению (0 &lt; 1; при равенстве — столбец A, B или C, а не AB).</li>
             </ol>
             <button type="button" class="btn btn--primary btn--wide" id="btn-game-instruction-start">
               Начать
@@ -293,12 +304,12 @@
     </div>
   </div>
 
-  <script src="/static/js/header.js?v=26"></script>
-  <script src="/static/js/game-store.js?v=26"></script>
-  <script src="/static/js/profile-store.js?v=26"></script>
-  <script src="/static/js/game-challenge.js?v=26"></script>
-  <script src="/static/js/table.js?v=26"></script>
-  <script src="/static/js/main.js?v=26"></script>
-  <script src="/static/js/game.js?v=27"></script>
+  <script src="/static/js/header.js?v=44"></script>
+  <script src="/static/js/game-store.js?v=44"></script>
+  <script src="/static/js/profile-store.js?v=44"></script>
+  <script src="/static/js/game-challenge.js?v=44"></script>
+  <script src="/static/js/table.js?v=44"></script>
+  <script src="/static/js/main.js?v=44"></script>
+  <script src="/static/js/game.js?v=44"></script>
 </body>
 </html>

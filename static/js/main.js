@@ -170,7 +170,7 @@ btnNext.addEventListener("click", () => {
   }
 
   if (algorithmStep === 2) {
-    TruthTable.strikeAlgoExceptMinimum(tableBody);
+    TruthTable.strikeAlgoExceptMinimum(tableBody, currentN);
     algorithmStep = 3;
     updateMdnfResult();
     return;
