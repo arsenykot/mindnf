@@ -218,45 +218,35 @@ function rowAlgoValues(n, row) {
 }
 
 /**
- * Учебный минимум в строке (шаг 3): наименьшее двоичное значение;
- * при равенстве — одиночный столбец (A, B, …), затем более короткая запись.
+ * Найти комбинацию ячеек (по одной на строку) с минимальным суммарным весом
+ * уникальных импликант. Вес импликанты = value.length (число литералов).
+ * rowSurvivors: массив массивов [{colIdx, value}] — по одному массиву на строку.
  */
-function pickRowMinimumActive(active, n) {
-  const singlesCount = groupColumns(n).singles.length;
+function findOptimalSelection(rowSurvivors, n) {
+  let bestWeight = Infinity;
+  let bestSelection = null;
 
-  function rank(item) {
-    const num = Number.parseInt(item.value, 2);
-    return {
-      num: Number.isFinite(num) ? num : Number.POSITIVE_INFINITY,
-      preferSingle: item.colIdx < singlesCount ? 0 : 1,
-      len: item.value.length,
-      colIdx: item.colIdx,
-    };
-  }
-
-  let best = active[0];
-  let bestRank = rank(best);
-
-  for (let i = 1; i < active.length; i += 1) {
-    const cur = active[i];
-    const r = rank(cur);
-    if (
-      r.num < bestRank.num
-      || (r.num === bestRank.num && r.preferSingle < bestRank.preferSingle)
-      || (r.num === bestRank.num
-        && r.preferSingle === bestRank.preferSingle
-        && r.len < bestRank.len)
-      || (r.num === bestRank.num
-        && r.preferSingle === bestRank.preferSingle
-        && r.len === bestRank.len
-        && r.colIdx < bestRank.colIdx)
-    ) {
-      best = cur;
-      bestRank = r;
+  function recurse(rowIdx, current) {
+    if (rowIdx === rowSurvivors.length) {
+      const terms = new Map();
+      current.forEach(({ colIdx, value }) => {
+        const impl = implicantFromAlgoCol(n, colIdx, value);
+        if (!terms.has(impl)) terms.set(impl, value.length);
+      });
+      const w = [...terms.values()].reduce((a, b) => a + b, 0);
+      if (w < bestWeight) {
+        bestWeight = w;
+        bestSelection = current.slice();
+      }
+      return;
+    }
+    for (const cell of rowSurvivors[rowIdx]) {
+      recurse(rowIdx + 1, [...current, cell]);
     }
   }
 
-  return best;
+  recurse(0, []);
+  return bestSelection;
 }
 
 function implicantFromAlgoCol(n, algoCol, value) {
@@ -298,12 +288,12 @@ function computeGameSolution(n, fValues) {
     }
   }
 
+  // Шаг 3: критерий — value.length, а не parseInt(value, 2)
   const step3Keys = new Set();
-  const minKeys = new Set();
+  const survivorsPerRow = new Map(); // row → [{colIdx, value, key}]
+
   for (let row = 0; row < rows; row += 1) {
-    if (zeroRows.has(row)) {
-      continue;
-    }
+    if (zeroRows.has(row)) continue;
     const active = [];
     for (let colIdx = 0; colIdx < colCount; colIdx += 1) {
       const key = `${row}:${colIdx}`;
@@ -311,19 +301,44 @@ function computeGameSolution(n, fValues) {
         active.push({ colIdx, value: rowAlgoValues(n, row)[colIdx], key });
       }
     }
-    if (active.length === 0) {
-      continue;
-    }
-    const minItem = pickRowMinimumActive(active, n);
+    if (active.length === 0) continue;
+
+    const minLen = Math.min(...active.map((a) => a.value.length));
+    const survivors = [];
     active.forEach((item) => {
-      if (item.key === minItem.key) {
-        minKeys.add(item.key);
-      } else {
+      if (item.value.length > minLen) {
         step3Keys.add(item.key);
+      } else {
+        survivors.push(item);
       }
     });
+    survivorsPerRow.set(row, survivors);
   }
 
+  // Шаг 4: оптимальный выбор из выживших
+  const step4Keys = new Set();
+  const minKeys = new Set();
+
+  const activeRowsList = [...survivorsPerRow.keys()];
+  const rowSurvivorsArr = activeRowsList.map((r) => survivorsPerRow.get(r));
+  const hasStep4 = rowSurvivorsArr.some((s) => s.length > 1);
+
+  const selection = hasStep4
+    ? findOptimalSelection(rowSurvivorsArr, n)
+    : rowSurvivorsArr.map((s) => s[0]);
+
+  rowSurvivorsArr.forEach((survivors, i) => {
+    const chosen = selection[i];
+    survivors.forEach((item) => {
+      if (item.key === chosen.key) {
+        minKeys.add(item.key);
+      } else {
+        step4Keys.add(item.key);
+      }
+    });
+  });
+
+  // МДНФ
   const terms = new Set();
   minKeys.forEach((key) => {
     const [row, colIdx] = key.split(":").map(Number);
@@ -335,7 +350,7 @@ function computeGameSolution(n, fValues) {
     mdnf = terms.size === 0 ? "—" : [...terms].sort(compareImplicants).join(" ∨ ");
   }
 
-  return { step1Rows, step2Keys, step3Keys, minKeys, mdnf, zeroRows };
+  return { step1Rows, step2Keys, step3Keys, step4Keys, minKeys, mdnf, zeroRows, hasStep4 };
 }
 
 function cellKey(row, colIdx) {
@@ -399,44 +414,67 @@ function strikeAlgoColumns(tableBody) {
   tableBody.dataset.step = "2";
 }
 
-/** Шаг 3: в каждой строке после f оставить только минимальное незачёркнутое значение. */
-function strikeAlgoExceptMinimum(tableBody, n) {
+/** Шаг 3: в каждой строке зачеркнуть ячейки с числом цифр > минимального. */
+function strikeAlgoByMinLength(tableBody, n) {
   const rows = [...tableBody.querySelectorAll("tr")];
   const colCount = getAlgoColCount(rows);
 
   rows.forEach((tr) => {
-    if (tr.classList.contains("truth-table__row--zero")) {
-      return;
-    }
+    if (tr.classList.contains("truth-table__row--zero")) return;
 
     const active = [];
     for (let colIdx = 0; colIdx < colCount; colIdx += 1) {
       const cell = getAlgoCell(tr, colIdx);
-      if (!cell || cell.classList.contains("truth-table__algo-col--struck")) {
-        continue;
-      }
-      active.push({
-        colIdx,
-        value: cell.textContent.trim(),
-        cell,
-      });
+      if (!cell || cell.classList.contains("truth-table__algo-col--struck")) continue;
+      active.push({ colIdx, value: cell.textContent.trim(), cell });
     }
+    if (active.length === 0) return;
 
-    if (active.length === 0) {
-      return;
-    }
-
-    const minItem = pickRowMinimumActive(active, n);
-
-    tr.querySelectorAll(".truth-table__algo-col").forEach((cell) => {
+    const minLen = Math.min(...active.map((a) => a.value.length));
+    active.forEach(({ value, cell }) => {
       cell.classList.remove("truth-table__algo-col--min");
-
-      if (cell.classList.contains("truth-table__algo-col--struck")) {
-        return;
+      if (value.length > minLen) {
+        cell.classList.add("truth-table__algo-col--struck");
       }
+    });
+  });
 
-      const colIdx = Number(cell.dataset.algoCol);
-      if (colIdx === minItem.colIdx) {
+  tableBody.dataset.step = "3";
+}
+
+/** Шаг 4: выбрать оптимальные ячейки из выживших, остальные вычеркнуть. */
+function strikeAlgoFinalStep(tableBody, n) {
+  const rows = [...tableBody.querySelectorAll("tr")];
+  const colCount = getAlgoColCount(rows);
+
+  const rowSurvivors = [];
+  const survivorCells = [];
+
+  rows.forEach((tr) => {
+    if (tr.classList.contains("truth-table__row--zero")) return;
+    const survivors = [];
+    for (let colIdx = 0; colIdx < colCount; colIdx += 1) {
+      const cell = getAlgoCell(tr, colIdx);
+      if (!cell || cell.classList.contains("truth-table__algo-col--struck")) continue;
+      survivors.push({ colIdx, value: cell.textContent.trim(), cell });
+    }
+    if (survivors.length === 0) return;
+    rowSurvivors.push(survivors.map(({ colIdx, value }) => ({ colIdx, value })));
+    survivorCells.push(survivors);
+  });
+
+  if (rowSurvivors.length === 0) {
+    tableBody.dataset.step = "4";
+    return;
+  }
+
+  const selection = findOptimalSelection(rowSurvivors, n);
+
+  survivorCells.forEach((survivors, i) => {
+    const chosen = selection[i];
+    survivors.forEach(({ colIdx, cell }) => {
+      cell.classList.remove("truth-table__algo-col--min");
+      if (colIdx === chosen.colIdx) {
         cell.classList.add("truth-table__algo-col--min");
       } else {
         cell.classList.add("truth-table__algo-col--struck");
@@ -444,7 +482,7 @@ function strikeAlgoExceptMinimum(tableBody, n) {
     });
   });
 
-  tableBody.dataset.step = "3";
+  tableBody.dataset.step = "4";
 }
 
 function getAlgorithmStep(tableBody) {
@@ -483,7 +521,7 @@ function compareImplicants(a, b) {
  * в строках, где f = 1.
  */
 function buildMdnf(tableBody) {
-  if (getAlgorithmStep(tableBody) < 3) {
+  if (getAlgorithmStep(tableBody) < 4) {
     return null;
   }
 
@@ -513,7 +551,8 @@ window.TruthTable = {
   readFunctionValues,
   lockFunctionColumn,
   strikeAlgoColumns,
-  strikeAlgoExceptMinimum,
+  strikeAlgoByMinLength,
+  strikeAlgoFinalStep,
   buildMdnf,
   implicantFromCell,
   computeGameSolution,
@@ -521,7 +560,6 @@ window.TruthTable = {
   getAlgoCell,
   getAlgoColCount,
   strikeComboColumns: strikeAlgoColumns,
-  strikeComboExceptMinimum: strikeAlgoExceptMinimum,
   isFunctionLocked,
   getAlgorithmStep,
   varLabel,
