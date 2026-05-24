@@ -43,7 +43,8 @@ const ROW_MARK_STAGGER_MS = 58;
 const STEP_BURST_TASKS = [
   "Зачеркните все строки, где f = 0 (номер строки, f или любая ячейка в строке).",
   "В каждом столбце после f зачеркните значения из исключённых строк.",
-  "В каждой строке оставьте одну ячейку с наименьшим двоичным значением (при равенстве — в столбце одной переменной).",
+  "В каждой строке зачеркните ячейки с бо́льшим числом цифр, чем у ячейки с наименьшим их числом.",
+  "Зачеркните ячейки, не вошедшие в минимальный ответ (ошибки не учитываются).",
 ];
 
 const STEP_HINTS = STEP_BURST_TASKS.map((text, i) => `Шаг ${i + 1}: ${text}`);
@@ -57,6 +58,7 @@ let timerId = null;
 let markedStep1 = new Set();
 let markedStep2 = new Set();
 let markedStep3 = new Set();
+let markedStep4 = new Set();
 let hintColsDone = new Set();
 let hintRowsDone = new Set();
 /** @type {HTMLTableCellElement[]} */
@@ -205,8 +207,9 @@ function playWinBurst() {
 }
 
 function updateHud() {
-  gameStepEl.textContent = gameStarted ? `Шаг ${gameStep + 1} из 3` : "Инструкция";
-  gameHintEl.textContent = gameStarted ? STEP_HINTS[gameStep] : "";
+  const total = solution?.hasStep4 ? 4 : 3;
+  gameStepEl.textContent = gameStarted ? `Шаг ${gameStep + 1} из ${total}` : "Инструкция";
+  gameHintEl.textContent = gameStarted ? (STEP_HINTS[gameStep] ?? "") : "";
 }
 
 function startTimer() {
@@ -295,6 +298,7 @@ function clearGameMarks() {
   markedStep1 = new Set();
   markedStep2 = new Set();
   markedStep3 = new Set();
+  markedStep4 = new Set();
   hintColsDone = new Set();
   hintRowsDone = new Set();
   gameTableBody.querySelectorAll(".game-mark").forEach((el) => {
@@ -438,7 +442,8 @@ async function applyHintsAfterStepTransition(fromStep, toStep) {
   if (!gameStarted) {
     return;
   }
-  for (let step = fromStep + 1; step <= toStep && step < 3; step += 1) {
+  const maxStep = solution.hasStep4 ? 4 : 3;
+  for (let step = fromStep + 1; step <= toStep && step < maxStep; step += 1) {
     await playStepBurst(step + 1);
     if (step === 1) {
       markCompletedStep2Hints();
@@ -538,6 +543,14 @@ function step3Done() {
   });
 }
 
+function step4Done() {
+  if (!solution.hasStep4 || solution.step4Keys.size === 0) return true;
+  return [...solution.step4Keys].every((key) => {
+    const [row, colIdx] = key.split(":").map(Number);
+    return isAlgoCellMarked(row, colIdx);
+  });
+}
+
 function isCurrentStepDone() {
   if (gameStep === 0) {
     return step1Done();
@@ -547,6 +560,9 @@ function isCurrentStepDone() {
   }
   if (gameStep === 2) {
     return step3Done();
+  }
+  if (gameStep === 3) {
+    return step4Done();
   }
   return false;
 }
@@ -566,28 +582,30 @@ function formatResultMdnf() {
 
 async function advanceStep() {
   const fromStep = gameStep;
+  const maxStep = solution.hasStep4 ? 4 : 3;
   gameStep += 1;
 
-  while (gameStep < 3 && isCurrentStepDone()) {
+  while (gameStep < maxStep && isCurrentStepDone()) {
     gameStep += 1;
   }
 
   updateHud();
   await applyHintsAfterStepTransition(fromStep, gameStep);
 
-  if (gameStep >= 3) {
+  if (gameStep >= maxStep) {
     await finishGame();
   }
 }
 
 async function tryAutoAdvance() {
   const fromStep = gameStep;
-  while (gameStarted && gameStep < 3 && isCurrentStepDone()) {
+  const maxStep = solution.hasStep4 ? 4 : 3;
+  while (gameStarted && gameStep < maxStep && isCurrentStepDone()) {
     gameStep += 1;
   }
   updateHud();
   await applyHintsAfterStepTransition(fromStep, gameStep);
-  if (gameStep >= 3) {
+  if (gameStep >= maxStep) {
     await finishGame();
   }
 }
@@ -695,6 +713,22 @@ async function handleStep3Click(cell, row, colIdx) {
   }
 }
 
+async function handleStep4Click(cell, row, colIdx) {
+  // Ошибки не учитываются: неверный клик молча игнорируется
+  if (step4Done()) {
+    await advanceStep();
+    return;
+  }
+  const key = TruthTable.cellKey(row, colIdx);
+  if (!solution.step4Keys.has(key)) {
+    return; // игнорируем — без flash("err")
+  }
+  ensureCellMarked(cell, markedStep4, key);
+  if (step4Done()) {
+    await advanceStep();
+  }
+}
+
 async function onGameCellClick(e) {
   if (!gameStarted) {
     showToast("Сначала нажмите «Начать» — тогда запустится таймер");
@@ -727,6 +761,8 @@ async function onGameCellClick(e) {
       await handleStep2Click(algoCell, row, colIdx);
     } else if (gameStep === 2) {
       await handleStep3Click(algoCell, row, colIdx);
+    } else if (gameStep === 3) {
+      await handleStep4Click(algoCell, row, colIdx);
     }
     return;
   }

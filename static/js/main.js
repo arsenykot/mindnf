@@ -170,13 +170,19 @@ btnNext.addEventListener("click", () => {
   }
 
   if (algorithmStep === 2) {
-    TruthTable.strikeAlgoExceptMinimum(tableBody, currentN);
+    TruthTable.strikeAlgoByMinLength(tableBody, currentN);
     algorithmStep = 3;
+    return;
+  }
+
+  if (algorithmStep === 3) {
+    TruthTable.strikeAlgoFinalStep(tableBody, currentN);
+    algorithmStep = 4;
     updateMdnfResult();
     return;
   }
 
-  if (algorithmStep >= 3) {
+  if (algorithmStep >= 4) {
     updateMdnfResult();
   }
 });
